@@ -72,6 +72,31 @@ private:
 
   vtkSmartPointer<vtkSphereWidget> m_FemoralOrigion;
 
+  // for knee
+  vtkSmartPointer<vtkActor> m_moveKnee;
+  vtkSmartPointer<vtkActor> m_fixKnee;
+  vtkSmartPointer<vtkSphereWidget> m_KneeP1;
+  vtkSmartPointer<vtkSphereWidget> m_KneeP2;
+  vtkSmartPointer<vtkSphereWidget> m_KneeOrigion;
+
+  double m_KneeLength;
+  double m_KneeCenter[3];
+  double m_KneeMoveCenter[3];
+  bool m_KneeisFlip;
+
+  // for ankle
+  vtkSmartPointer<vtkActor> m_moveAnkle;
+  vtkSmartPointer<vtkActor> m_fixAnkle;
+  vtkSmartPointer<vtkSphereWidget> m_AnkleP1;
+  vtkSmartPointer<vtkSphereWidget> m_AnkleP2;
+  vtkSmartPointer<vtkSphereWidget> m_AnkleOrigion;
+  double m_AnkleMoveCenter[3];
+  double m_AnkleLength;
+  double m_AnkleCenter[3];
+
+  // for force line
+  vtkSmartPointer<vtkActor> m_ForceLineActor;
+
 protected:
   virtual void closeEvent(QCloseEvent *event);
   void SetUpSphereWidet();
@@ -81,6 +106,8 @@ protected:
   void GenerateDRR();
   void CalculateCircle(double p1[], double p2[], double p3[],
                        double outcenter[], double &outradius);
+  void UpDateForceLine();
+  bool isDataNull(double data[]);
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
@@ -91,12 +118,29 @@ protected slots:
   void OnSurceWidgetInteraction();
   void OnGenerateDRR();
 
+  // for femoral
   void OnFemoralCenterButton();
   void OnFemoralMove();
   void OnFemoralCircleChanged();
   void OnFemoralSet();
   void OnFemoralSideChange();
   void OnFemoralOrigionChange();
+
+  // for kness
+  void OnKneeCenterButton();
+  void OnKneeMove();
+  void OnKneeChanged();
+  void OnKneeSet();
+  void OnKneeSideChange();
+  void OnKneeOrigionChange();
+
+  // for ankle
+  void OnAnkleCenterButton();
+  void OnAnkleMove();
+  void OnAnkleChanged();
+  void OnAnkleSet();
+  void OnAnkleSideChanged();
+  void OnAnkleOrigionChange();
 };
 
 #endif // MAINWINDOW_H

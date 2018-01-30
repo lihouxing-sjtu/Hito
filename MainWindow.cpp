@@ -79,7 +79,45 @@ MainWindow::MainWindow(QWidget *parent)
   m_fixFemoral->GetProperty()->SetColor(1, 0, 0);
   m_fixFemoral->GetProperty()->SetLineWidth(5);
   m_Render2D->AddActor(m_fixFemoral);
-  m_FemoralRadius = 10;
+  m_FemoralRadius = 50;
+
+  // for knee
+  m_moveKnee = vtkSmartPointer<vtkActor>::New();
+  m_moveKnee->GetProperty()->SetColor(1, 0, 0);
+  m_moveKnee->GetProperty()->SetLineWidth(5);
+  m_fixKnee = vtkSmartPointer<vtkActor>::New();
+  m_fixKnee->GetProperty()->SetColor(1, 0, 0);
+  m_fixKnee->GetProperty()->SetLineWidth(5);
+
+  m_Render2D->AddActor(m_moveKnee);
+  m_Render2D->AddActor(m_fixKnee);
+  m_KneeLength = 100;
+  m_KneeisFlip = false;
+
+  // for ankle
+  m_moveAnkle = vtkSmartPointer<vtkActor>::New();
+  m_moveAnkle->GetProperty()->SetColor(1, 0, 0);
+  m_moveAnkle->GetProperty()->SetLineWidth(5);
+
+  m_fixAnkle = vtkSmartPointer<vtkActor>::New();
+  m_fixAnkle->GetProperty()->SetColor(1, 0, 0);
+  m_fixAnkle->GetProperty()->SetLineWidth(5);
+
+  m_Render2D->AddActor(m_moveAnkle);
+  m_Render2D->AddActor(m_fixAnkle);
+  m_AnkleLength = 100;
+
+  // for force line
+  m_ForceLineActor = vtkSmartPointer<vtkActor>::New();
+  m_ForceLineActor->GetProperty()->SetColor(1, 1, 0);
+  m_ForceLineActor->GetProperty()->SetLineWidth(5);
+  m_Render2D->AddActor(m_ForceLineActor);
+
+  for (int i = 0; i < 3; i++) {
+    m_FemoralCenter[i] = 0;
+    m_KneeCenter[i] = 0;
+    m_AnkleCenter[i] = 0;
+  }
   this->SetUpSphereWidet();
   this->SetUpOrientationWidget();
   connect(ui->DICOMBrowserButton, SIGNAL(clicked(bool)), this,
@@ -103,6 +141,11 @@ MainWindow::MainWindow(QWidget *parent)
           SLOT(OnSurceWidgetInteraction()));
   connect(ui->FemoralCenterButton, SIGNAL(clicked(bool)), this,
           SLOT(OnFemoralCenterButton()));
+  connect(ui->KneeCenterButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnKneeCenterButton()));
+
+  connect(ui->AnkleCenterButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnAnkleCenterButton()));
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -119,6 +162,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 }
 
 void MainWindow::SetUpSphereWidet() {
+  // for femoral
   m_FemoralSide1 = vtkSmartPointer<vtkSphereWidget>::New();
   m_FemoralSide1->SetInteractor(m_Interactor2D);
   m_FemoralSide1->SetRepresentationToSurface();
@@ -144,6 +188,45 @@ void MainWindow::SetUpSphereWidet() {
   m_FemoralOrigion->GetSphereProperty()->SetColor(1, 1, 0);
   m_vtkqtConnector->Connect(m_FemoralOrigion, vtkCommand::InteractionEvent,
                             this, SLOT(OnFemoralOrigionChange()));
+  // for knee
+  m_KneeP1 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_KneeP1->SetInteractor(m_Interactor2D);
+  m_KneeP1->SetRepresentationToSurface();
+  m_KneeP1->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_KneeP1, vtkCommand::InteractionEvent, this,
+                            SLOT(OnKneeSideChange()));
+  m_KneeP2 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_KneeP2->SetInteractor(m_Interactor2D);
+  m_KneeP2->SetRepresentationToSurface();
+  m_KneeP2->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_KneeP2, vtkCommand::InteractionEvent, this,
+                            SLOT(OnKneeSideChange()));
+  m_KneeOrigion = vtkSmartPointer<vtkSphereWidget>::New();
+  m_KneeOrigion->SetInteractor(m_Interactor2D);
+  m_KneeOrigion->SetRepresentationToSurface();
+  m_KneeOrigion->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_KneeOrigion, vtkCommand::InteractionEvent, this,
+                            SLOT(OnKneeOrigionChange()));
+
+  // for  ankle
+  m_AnkleP1 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_AnkleP1->SetInteractor(m_Interactor2D);
+  m_AnkleP1->SetRepresentationToSurface();
+  m_AnkleP1->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_AnkleP1, vtkCommand::InteractionEvent, this,
+                            SLOT(OnAnkleSideChanged()));
+  m_AnkleP2 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_AnkleP2->SetInteractor(m_Interactor2D);
+  m_AnkleP2->SetRepresentationToSurface();
+  m_AnkleP2->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_AnkleP2, vtkCommand::InteractionEvent, this,
+                            SLOT(OnAnkleSideChanged()));
+  m_AnkleOrigion = vtkSmartPointer<vtkSphereWidget>::New();
+  m_AnkleOrigion->SetInteractor(m_Interactor2D);
+  m_AnkleOrigion->SetRepresentationToSurface();
+  m_AnkleOrigion->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_AnkleOrigion, vtkCommand::InteractionEvent, this,
+                            SLOT(OnAnkleOrigionChange()));
 }
 
 void MainWindow::SetUpOrientationWidget() {
@@ -311,6 +394,8 @@ void MainWindow::UpDateFemoralCircle() {
 
   ui->FemoralCenterButton->setChecked(false);
   this->OnFemoralCenterButton();
+
+  this->UpDateForceLine();
 }
 
 void MainWindow::GenerateDRR() {
@@ -515,6 +600,131 @@ void MainWindow::CalculateCircle(double p1[], double p2[], double p3[],
       sqrt(pow(distance[0], 2) + pow(distance[1], 2) + pow(distance[2], 2));
 }
 
+void MainWindow::UpDateForceLine() {
+
+  bool isfemoralDefined = isDataNull(m_FemoralCenter);
+  bool iskneeDefined = isDataNull(m_KneeCenter);
+  bool isankleDefined = isDataNull(m_AnkleCenter);
+  qDebug() << isfemoralDefined << " " << iskneeDefined << "  "
+           << isankleDefined;
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  points->Initialize();
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  auto pd = vtkSmartPointer<vtkPolyData>::New();
+  //定义了上面两个点
+  if (ui->FemoralCenterButton->isChecked()) {
+    if (iskneeDefined) {
+      if (isankleDefined) {
+        points->InsertNextPoint(m_FemoralMoveCenter);
+        points->InsertNextPoint(m_KneeCenter);
+        points->InsertNextPoint(m_AnkleCenter);
+        auto idlist = vtkSmartPointer<vtkIdList>::New();
+        idlist->Initialize();
+        idlist->InsertNextId(0);
+        idlist->InsertNextId(1);
+        idlist->InsertNextId(2);
+        cells->InsertNextCell(idlist);
+      } else {
+        points->InsertNextPoint(m_FemoralMoveCenter);
+        points->InsertNextPoint(m_KneeCenter);
+        auto idlist = vtkSmartPointer<vtkIdList>::New();
+        idlist->Initialize();
+        idlist->InsertNextId(0);
+        idlist->InsertNextId(1);
+        cells->InsertNextCell(idlist);
+      }
+    }
+  } else if (ui->KneeCenterButton->isChecked()) {
+    if (isfemoralDefined) {
+      if (isankleDefined) {
+        points->InsertNextPoint(m_FemoralCenter);
+        points->InsertNextPoint(m_KneeMoveCenter);
+        points->InsertNextPoint(m_AnkleCenter);
+        auto idlist = vtkSmartPointer<vtkIdList>::New();
+        idlist->Initialize();
+        idlist->InsertNextId(0);
+        idlist->InsertNextId(1);
+        idlist->InsertNextId(2);
+        cells->InsertNextCell(idlist);
+      } else {
+        points->InsertNextPoint(m_FemoralCenter);
+        points->InsertNextPoint(m_KneeMoveCenter);
+        auto idlist = vtkSmartPointer<vtkIdList>::New();
+        idlist->Initialize();
+        idlist->InsertNextId(0);
+        idlist->InsertNextId(1);
+        cells->InsertNextCell(idlist);
+      }
+    }
+  } else if (ui->AnkleCenterButton->isChecked()) {
+    if (iskneeDefined) {
+      if (isfemoralDefined) {
+        points->InsertNextPoint(m_FemoralCenter);
+        points->InsertNextPoint(m_KneeCenter);
+        points->InsertNextPoint(m_AnkleMoveCenter);
+        auto idlist = vtkSmartPointer<vtkIdList>::New();
+        idlist->Initialize();
+        idlist->InsertNextId(0);
+        idlist->InsertNextId(1);
+        idlist->InsertNextId(2);
+        cells->InsertNextCell(idlist);
+      } else {
+        points->InsertNextPoint(m_KneeCenter);
+        points->InsertNextPoint(m_AnkleMoveCenter);
+        auto idlist = vtkSmartPointer<vtkIdList>::New();
+        idlist->Initialize();
+        idlist->InsertNextId(0);
+        idlist->InsertNextId(1);
+        cells->InsertNextCell(idlist);
+      }
+    }
+  } else {
+    if (isfemoralDefined && iskneeDefined && isankleDefined) {
+      points->InsertNextPoint(m_FemoralCenter);
+      points->InsertNextPoint(m_KneeCenter);
+      points->InsertNextPoint(m_AnkleCenter);
+      auto idlist = vtkSmartPointer<vtkIdList>::New();
+      idlist->Initialize();
+      idlist->InsertNextId(0);
+      idlist->InsertNextId(1);
+      idlist->InsertNextId(2);
+      cells->InsertNextCell(idlist);
+    } else if (isfemoralDefined && iskneeDefined) {
+      points->InsertNextPoint(m_FemoralCenter);
+      points->InsertNextPoint(m_KneeCenter);
+      auto idlist = vtkSmartPointer<vtkIdList>::New();
+      idlist->Initialize();
+      idlist->InsertNextId(0);
+      idlist->InsertNextId(1);
+      cells->InsertNextCell(idlist);
+    } else if (iskneeDefined && isankleDefined) {
+      points->InsertNextPoint(m_KneeCenter);
+      points->InsertNextPoint(m_AnkleCenter);
+      auto idlist = vtkSmartPointer<vtkIdList>::New();
+      idlist->Initialize();
+      idlist->InsertNextId(0);
+      idlist->InsertNextId(1);
+      cells->InsertNextCell(idlist);
+    } else
+      return;
+  }
+
+  pd->SetPoints(points);
+  pd->SetLines(cells);
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(pd);
+  m_ForceLineActor->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+}
+
+bool MainWindow::isDataNull(double data[]) {
+  if (data[0] == 0 && data[1] == 0 && data[2] == 0)
+    return 0;
+  else
+    return 1;
+}
+
 void MainWindow::OnDICOMBrowser() { m_dicomBrowser->show(); }
 
 void MainWindow::OnImportVolume(int index) {
@@ -645,8 +855,8 @@ void MainWindow::OnFemoralCenterButton() {
     m_FemoralSide3->Off();
     m_FemoralOrigion->Off();
 
-    ui->KneeCenterButton->setCheckable(false);
-    ui->AnkleCenterButton->setCheckable(false);
+    ui->KneeCenterButton->setDisabled(true);
+    ui->AnkleCenterButton->setDisabled(true);
     m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::MouseMoveEvent, this,
                               SLOT(OnFemoralMove()));
     m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::KeyPressEvent, this,
@@ -657,6 +867,7 @@ void MainWindow::OnFemoralCenterButton() {
   } else {
     m_moveFemoral->VisibilityOff();
     m_fixFemoral->VisibilityOn();
+    this->UpDateForceLine();
     double side1[3];
     m_FemoralSide1->GetCenter(side1);
     if (side1[0] == 0 && side1[1] == 0 && side1[2] == 0) {
@@ -666,8 +877,8 @@ void MainWindow::OnFemoralCenterButton() {
       m_FemoralSide3->On();
       m_FemoralOrigion->On();
     }
-    ui->KneeCenterButton->setCheckable(true);
-    ui->AnkleCenterButton->setCheckable(true);
+    ui->KneeCenterButton->setDisabled(false);
+    ui->AnkleCenterButton->setDisabled(false);
     m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::MouseMoveEvent,
                                  this, SLOT(OnFemoralMove()));
     m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::KeyPressEvent,
@@ -682,7 +893,7 @@ void MainWindow::OnFemoralCenterButton() {
 void MainWindow::OnFemoralMove() {
 
   //投影到世界坐标系
-
+  ui->Widget2D->setFocus();
   QPoint mouse = ui->Widget2D->mapFromGlobal(QCursor::pos());
 
   int x = mouse.x();
@@ -731,6 +942,7 @@ void MainWindow::OnFemoralMove() {
   mapper->SetInputData(circlePD);
   m_moveFemoral->SetMapper(mapper);
   m_Render2D->GetRenderWindow()->Render();
+  this->UpDateForceLine();
 }
 
 void MainWindow::OnFemoralCircleChanged() {
@@ -797,26 +1009,28 @@ void MainWindow::OnFemoralSet() {
   m_Render2D->GetRenderWindow()->Render();
   side1[2] += 20;
   m_FemoralSide1->SetCenter(side1);
-  m_FemoralSide1->SetRadius(m_FemoralRadius / 10);
+  m_FemoralSide1->SetRadius(10);
   m_FemoralSide1->On();
   side2[2] += 20;
   m_FemoralSide2->SetCenter(side2);
-  m_FemoralSide2->SetRadius(m_FemoralRadius / 10);
+  m_FemoralSide2->SetRadius(10);
   m_FemoralSide2->On();
   side3[2] += 20;
   m_FemoralSide3->SetCenter(side3);
-  m_FemoralSide3->SetRadius(m_FemoralRadius / 10);
+  m_FemoralSide3->SetRadius(10);
 
   m_FemoralSide3->On();
   m_FemoralOrigion->SetCenter(m_FemoralCenter[0], m_FemoralCenter[1],
                               m_FemoralCenter[2] + 10);
-  m_FemoralOrigion->SetRadius(m_FemoralRadius / 10);
+  m_FemoralOrigion->SetRadius(10);
   m_FemoralOrigion->On();
 
   ui->FemoralCenterButton->setChecked(false);
   this->OnFemoralCenterButton();
 
   this->OnFemoralSideChange();
+
+  this->UpDateForceLine();
 }
 
 void MainWindow::OnFemoralSideChange() {
@@ -850,4 +1064,483 @@ void MainWindow::OnFemoralOrigionChange() {
   m_FemoralSide3->SetCenter(side3);
 
   this->UpDateFemoralCircle();
+}
+
+void MainWindow::OnKneeCenterButton() {
+  if (ui->KneeCenterButton->isChecked()) {
+    ui->FemoralCenterButton->setDisabled(true);
+    ui->AnkleCenterButton->setDisabled(true);
+
+    m_KneeP1->Off();
+    m_KneeP2->Off();
+    m_KneeOrigion->Off();
+    m_moveKnee->VisibilityOn();
+    m_fixKnee->VisibilityOff();
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::MouseMoveEvent, this,
+                              SLOT(OnKneeMove()));
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::KeyPressEvent, this,
+                              SLOT(OnKneeChanged()));
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::LeftButtonPressEvent,
+                              this, SLOT(OnKneeSet()));
+  } else {
+    ui->FemoralCenterButton->setDisabled(false);
+    ui->AnkleCenterButton->setDisabled(false);
+
+    double p1[3];
+    m_KneeP1->GetCenter(p1);
+    if (p1[0] == 0 && p1[1] == 0 && p1[2] == 0) {
+    } else {
+      m_KneeP1->On();
+      m_KneeP2->On();
+      m_KneeOrigion->On();
+    }
+
+    m_moveKnee->VisibilityOff();
+    m_fixKnee->VisibilityOn();
+    this->UpDateForceLine();
+
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::MouseMoveEvent,
+                                 this, SLOT(OnKneeMove()));
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::KeyPressEvent,
+                                 this, SLOT(OnKneeChanged()));
+    m_vtkqtConnector->Disconnect(m_Interactor2D,
+                                 vtkCommand::LeftButtonPressEvent, this,
+                                 SLOT(OnKneeSet()));
+  }
+}
+
+void MainWindow::OnKneeMove() {
+  ui->Widget2D->setFocus();
+  QPoint mouse = ui->Widget2D->mapFromGlobal(QCursor::pos());
+
+  int x = mouse.x();
+  int y = ui->Widget2D->height() - mouse.y();
+
+  qDebug() << "move:" << x << " " << y;
+  double worldpos[4];
+  vtkInteractorObserver::ComputeDisplayToWorld(m_Render2D, x, y, 0, worldpos);
+  qDebug() << "world:" << worldpos[0] << " " << worldpos[1] << " "
+           << worldpos[2];
+
+  for (int i = 0; i < 3; i++)
+    m_KneeMoveCenter[i] = worldpos[i];
+
+  //计算直线
+  double zdireciton[3] = {0, 0, 1};
+  double crossDirection[3];
+  vtkMath::Perpendiculars(zdireciton, nullptr, crossDirection, 0);
+  double p1[3], p2[3];
+  for (int i = 0; i < 3; i++) {
+    if (m_KneeisFlip) {
+      p1[i] = m_KneeMoveCenter[i] - 0.375 * m_KneeLength * crossDirection[i];
+      p2[i] = m_KneeMoveCenter[i] + 0.625 * m_KneeLength * crossDirection[i];
+    } else {
+      p1[i] = m_KneeMoveCenter[i] - 0.625 * m_KneeLength * crossDirection[i];
+      p2[i] = m_KneeMoveCenter[i] + 0.375 * m_KneeLength * crossDirection[i];
+    }
+  }
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_moveKnee->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnKneeChanged() {
+  char *key = m_Interactor2D->GetKeySym();
+  QString str = QString(QLatin1String(key));
+  qDebug() << key;
+  if (str == "equal") {
+    m_KneeLength += 5;
+  }
+  if (str == "minus") {
+    m_KneeLength -= 5;
+  }
+  if (str == "space") {
+    m_KneeisFlip = !m_KneeisFlip;
+  }
+  OnKneeMove();
+}
+
+void MainWindow::OnKneeSet() {
+  for (int i = 0; i < 3; i++) {
+    m_KneeCenter[i] = m_KneeMoveCenter[i];
+  }
+  //计算直线
+  double zdireciton[3] = {0, 0, 1};
+  double crossDirection[3];
+  vtkMath::Perpendiculars(zdireciton, nullptr, crossDirection, 0);
+  double p1[3], p2[3];
+  for (int i = 0; i < 3; i++) {
+    if (m_KneeisFlip) {
+      p1[i] = m_KneeMoveCenter[i] - 0.375 * m_KneeLength * crossDirection[i];
+      p2[i] = m_KneeMoveCenter[i] + 0.625 * m_KneeLength * crossDirection[i];
+    } else {
+      p1[i] = m_KneeMoveCenter[i] - 0.625 * m_KneeLength * crossDirection[i];
+      p2[i] = m_KneeMoveCenter[i] + 0.375 * m_KneeLength * crossDirection[i];
+    }
+  }
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_fixKnee->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  m_KneeP1->SetCenter(p1[0], p1[1], p1[2] + 10);
+  m_KneeP1->SetRadius(10);
+  m_KneeP1->On();
+
+  m_KneeP2->SetCenter(p2[0], p2[1], p2[2] + 10);
+  m_KneeP2->SetRadius(10);
+  m_KneeP2->On();
+
+  m_KneeOrigion->SetCenter(m_KneeCenter[0], m_KneeCenter[1],
+                           m_KneeCenter[2] + 10);
+  m_KneeOrigion->SetRadius(10);
+  m_KneeOrigion->On();
+
+  ui->KneeCenterButton->setChecked(false);
+  this->OnKneeCenterButton();
+  this->OnKneeSideChange();
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnKneeSideChange() {
+  double p1[3], p2[3];
+  m_KneeP1->GetCenter(p1);
+  m_KneeP2->GetCenter(p2);
+  double direction[3];
+  for (int i = 0; i < 3; i++)
+    direction[i] = p2[i] - p1[i];
+  vtkMath::Normalize(direction);
+  m_KneeLength = sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
+  for (int i = 0; i < 3; i++) {
+    if (m_KneeisFlip)
+      m_KneeCenter[i] = p1[i] + 0.357 * direction[i] * m_KneeLength;
+    else
+      m_KneeCenter[i] = p1[i] + 0.625 * direction[i] * m_KneeLength;
+  }
+  m_KneeOrigion->SetCenter(m_KneeCenter);
+
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_fixKnee->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnKneeOrigionChange() {
+  double origion[3];
+  m_KneeOrigion->GetCenter(origion);
+  double changeDistance[3];
+  for (int i = 0; i < 3; i++) {
+    changeDistance[i] = origion[i] - m_KneeCenter[i];
+    m_KneeCenter[i] = origion[i];
+  }
+  double p1[3], p2[3];
+  m_KneeP1->GetCenter(p1);
+  m_KneeP2->GetCenter(p2);
+  for (int i = 0; i < 3; i++) {
+    p1[i] += changeDistance[i];
+    p2[i] += changeDistance[i];
+  }
+  m_KneeP1->SetCenter(p1);
+  m_KneeP2->SetCenter(p2);
+
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_fixKnee->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnAnkleCenterButton() {
+  if (ui->AnkleCenterButton->isChecked()) {
+    m_fixAnkle->VisibilityOff();
+    m_moveAnkle->VisibilityOn();
+    m_AnkleP1->Off();
+    m_AnkleP2->Off();
+    m_AnkleOrigion->Off();
+    ui->FemoralCenterButton->setDisabled(true);
+    ui->KneeCenterButton->setDisabled(true);
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::MouseMoveEvent, this,
+                              SLOT(OnAnkleMove()));
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::KeyPressEvent, this,
+                              SLOT(OnAnkleChanged()));
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::LeftButtonPressEvent,
+                              this, SLOT(OnAnkleSet()));
+  } else {
+    double p1[3];
+    if (p1[0] == 0 && p1[1] == 0 && p1[2] == 0) {
+    } else {
+      m_AnkleP1->On();
+      m_AnkleP2->On();
+      m_AnkleOrigion->On();
+    }
+    m_fixAnkle->VisibilityOn();
+    m_moveAnkle->VisibilityOff();
+    this->UpDateForceLine();
+
+    ui->FemoralCenterButton->setDisabled(false);
+    ui->KneeCenterButton->setDisabled(false);
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::MouseMoveEvent,
+                                 this, SLOT(OnAnkleMove()));
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::KeyPressEvent,
+                                 this, SLOT(OnAnkleChanged()));
+    m_vtkqtConnector->Disconnect(m_Interactor2D,
+                                 vtkCommand::LeftButtonPressEvent, this,
+                                 SLOT(OnAnkleSet()));
+  }
+}
+
+void MainWindow::OnAnkleMove() {
+  ui->Widget2D->setFocus();
+  QPoint mouse = ui->Widget2D->mapFromGlobal(QCursor::pos());
+
+  int x = mouse.x();
+  int y = ui->Widget2D->height() - mouse.y();
+
+  qDebug() << "move:" << x << " " << y;
+  double worldpos[4];
+  vtkInteractorObserver::ComputeDisplayToWorld(m_Render2D, x, y, 0, worldpos);
+  qDebug() << "world:" << worldpos[0] << " " << worldpos[1] << " "
+           << worldpos[2];
+
+  for (int i = 0; i < 3; i++)
+    m_AnkleMoveCenter[i] = worldpos[i];
+
+  //计算直线
+  double zdireciton[3] = {0, 0, 1};
+  double crossDirection[3];
+  vtkMath::Perpendiculars(zdireciton, nullptr, crossDirection, 0);
+  double p1[3], p2[3];
+  for (int i = 0; i < 3; i++) {
+
+    p1[i] = m_AnkleMoveCenter[i] - 0.5 * m_AnkleLength * crossDirection[i];
+    p2[i] = m_AnkleMoveCenter[i] + 0.5 * m_AnkleLength * crossDirection[i];
+  }
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_moveAnkle->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnAnkleChanged() {
+  char *key = m_Interactor2D->GetKeySym();
+  QString str = QString(QLatin1String(key));
+  qDebug() << key;
+  if (str == "equal") {
+    m_AnkleLength += 5;
+  }
+  if (str == "minus") {
+    m_AnkleLength -= 5;
+  }
+  OnAnkleMove();
+}
+
+void MainWindow::OnAnkleSet() {
+  for (int i = 0; i < 3; i++)
+    m_AnkleCenter[i] = m_AnkleMoveCenter[i];
+
+  //计算直线
+  double zdireciton[3] = {0, 0, 1};
+  double crossDirection[3];
+  vtkMath::Perpendiculars(zdireciton, nullptr, crossDirection, 0);
+  double p1[3], p2[3];
+  for (int i = 0; i < 3; i++) {
+
+    p1[i] = m_AnkleCenter[i] - 0.5 * m_AnkleLength * crossDirection[i];
+    p2[i] = m_AnkleCenter[i] + 0.5 * m_AnkleLength * crossDirection[i];
+  }
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_fixAnkle->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  m_AnkleP1->SetCenter(p1[0], p1[1], p1[2] + 10);
+  m_AnkleP1->SetRadius(10);
+  m_AnkleP1->On();
+
+  m_AnkleP2->SetCenter(p2[0], p2[1], p2[2] + 10);
+  m_AnkleP2->SetRadius(10);
+  m_AnkleP2->On();
+
+  m_AnkleOrigion->SetCenter(m_AnkleCenter[0], m_AnkleCenter[1],
+                            m_AnkleCenter[2] + 10);
+  m_AnkleOrigion->SetRadius(10);
+  m_AnkleOrigion->On();
+
+  ui->AnkleCenterButton->setChecked(false);
+  this->OnAnkleCenterButton();
+  this->OnAnkleSideChanged();
+
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnAnkleSideChanged() {
+  double p1[3], p2[3];
+  m_AnkleP1->GetCenter(p1);
+  m_AnkleP2->GetCenter(p2);
+
+  for (int i = 0; i < 3; i++) {
+    m_AnkleCenter[i] = (p1[i] + p2[i]) / 2;
+  }
+  m_AnkleOrigion->SetCenter(m_AnkleCenter);
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_fixAnkle->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  this->UpDateForceLine();
+}
+
+void MainWindow::OnAnkleOrigionChange() {
+  double origion[3];
+  m_AnkleOrigion->GetCenter(origion);
+  m_AnkleOrigion->GetCenter(origion);
+  double changeDistance[3];
+  for (int i = 0; i < 3; i++) {
+    changeDistance[i] = origion[i] - m_AnkleCenter[i];
+    m_AnkleCenter[i] = origion[i];
+  }
+  double p1[3], p2[3];
+  m_AnkleP1->GetCenter(p1);
+  m_AnkleP2->GetCenter(p2);
+  for (int i = 0; i < 3; i++) {
+    p1[i] += changeDistance[i];
+    p2[i] += changeDistance[i];
+  }
+  m_AnkleP1->SetCenter(p1);
+  m_AnkleP2->SetCenter(p2);
+
+  auto linepoints = vtkSmartPointer<vtkPoints>::New();
+  linepoints->Initialize();
+  linepoints->InsertNextPoint(p1);
+  linepoints->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  cells->InsertNextCell(idlist);
+  auto linePD = vtkSmartPointer<vtkPolyData>::New();
+  linePD->SetPoints(linepoints);
+  linePD->SetLines(cells);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(linePD);
+  m_fixAnkle->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  this->UpDateForceLine();
 }
