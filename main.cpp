@@ -1,9 +1,13 @@
 #include "MainWindow.h"
 #include "stdafx.h"
 #include <QApplication>
+#include <QTextCodec>
 #include <qsurfaceformat.h>
+
 VTK_MODULE_INIT(vtkRenderingVolumeOpenGL2)
 int main(int argc, char *argv[]) {
+
+  QTextCodec::setCodecForLocale(QTextCodec::codecForName("GBK"));
   QApplication::setStyle(QStyleFactory::create("Fusion"));
   QPalette p;
   p = qApp->palette();

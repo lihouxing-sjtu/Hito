@@ -96,6 +96,9 @@ private:
 
   // for force line
   vtkSmartPointer<vtkActor> m_ForceLineActor;
+  vtkSmartPointer<vtkActor> m_ExtensionLineActor;
+
+  vtkSmartPointer<vtkFollower> m_AngleFollower;
 
 protected:
   virtual void closeEvent(QCloseEvent *event);
@@ -108,6 +111,10 @@ protected:
                        double outcenter[], double &outradius);
   void UpDateForceLine();
   bool isDataNull(double data[]);
+  void BuildLine(double p1[], double p2[], vtkPolyData *out);
+  void BuildLine(double p1[], double p2[], double p3[], vtkPolyData *out);
+  void BuildExtensionLine(double p1[], double p2[], double p3[],
+                          vtkPolyData *out);
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);

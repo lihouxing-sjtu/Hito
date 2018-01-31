@@ -113,6 +113,16 @@ MainWindow::MainWindow(QWidget *parent)
   m_ForceLineActor->GetProperty()->SetLineWidth(5);
   m_Render2D->AddActor(m_ForceLineActor);
 
+  m_ExtensionLineActor = vtkSmartPointer<vtkActor>::New();
+  m_ExtensionLineActor->GetProperty()->SetColor(1, 1, 0);
+  m_ExtensionLineActor->GetProperty()->SetLineWidth(5);
+  m_Render2D->AddActor(m_ExtensionLineActor);
+
+  m_AngleFollower = vtkSmartPointer<vtkFollower>::New();
+  m_AngleFollower->SetCamera(m_Render2D->GetActiveCamera());
+  m_AngleFollower->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_AngleFollower);
+
   for (int i = 0; i < 3; i++) {
     m_FemoralCenter[i] = 0;
     m_KneeCenter[i] = 0;
@@ -607,114 +617,62 @@ void MainWindow::UpDateForceLine() {
   bool isankleDefined = isDataNull(m_AnkleCenter);
   qDebug() << isfemoralDefined << " " << iskneeDefined << "  "
            << isankleDefined;
-  auto points = vtkSmartPointer<vtkPoints>::New();
-  points->Initialize();
-  auto cells = vtkSmartPointer<vtkCellArray>::New();
-  cells->Initialize();
-  auto pd = vtkSmartPointer<vtkPolyData>::New();
-  //定义了上面两个点
+
+  auto Forcelinepd = vtkSmartPointer<vtkPolyData>::New();
+  auto Extensionlinepd = vtkSmartPointer<vtkPolyData>::New();
   if (ui->FemoralCenterButton->isChecked()) {
     if (iskneeDefined) {
       if (isankleDefined) {
-        points->InsertNextPoint(m_FemoralMoveCenter);
-        points->InsertNextPoint(m_KneeCenter);
-        points->InsertNextPoint(m_AnkleCenter);
-        auto idlist = vtkSmartPointer<vtkIdList>::New();
-        idlist->Initialize();
-        idlist->InsertNextId(0);
-        idlist->InsertNextId(1);
-        idlist->InsertNextId(2);
-        cells->InsertNextCell(idlist);
+        BuildLine(m_FemoralMoveCenter, m_KneeCenter, m_AnkleCenter,
+                  Forcelinepd);
+        BuildExtensionLine(m_FemoralMoveCenter, m_KneeCenter, m_AnkleCenter,
+                           Extensionlinepd);
       } else {
-        points->InsertNextPoint(m_FemoralMoveCenter);
-        points->InsertNextPoint(m_KneeCenter);
-        auto idlist = vtkSmartPointer<vtkIdList>::New();
-        idlist->Initialize();
-        idlist->InsertNextId(0);
-        idlist->InsertNextId(1);
-        cells->InsertNextCell(idlist);
+        BuildLine(m_FemoralMoveCenter, m_KneeCenter, Forcelinepd);
       }
     }
   } else if (ui->KneeCenterButton->isChecked()) {
     if (isfemoralDefined) {
       if (isankleDefined) {
-        points->InsertNextPoint(m_FemoralCenter);
-        points->InsertNextPoint(m_KneeMoveCenter);
-        points->InsertNextPoint(m_AnkleCenter);
-        auto idlist = vtkSmartPointer<vtkIdList>::New();
-        idlist->Initialize();
-        idlist->InsertNextId(0);
-        idlist->InsertNextId(1);
-        idlist->InsertNextId(2);
-        cells->InsertNextCell(idlist);
+        BuildLine(m_FemoralCenter, m_KneeMoveCenter, m_AnkleCenter,
+                  Forcelinepd);
+        BuildExtensionLine(m_FemoralCenter, m_KneeMoveCenter, m_AnkleCenter,
+                           Extensionlinepd);
       } else {
-        points->InsertNextPoint(m_FemoralCenter);
-        points->InsertNextPoint(m_KneeMoveCenter);
-        auto idlist = vtkSmartPointer<vtkIdList>::New();
-        idlist->Initialize();
-        idlist->InsertNextId(0);
-        idlist->InsertNextId(1);
-        cells->InsertNextCell(idlist);
+        BuildLine(m_FemoralCenter, m_KneeMoveCenter, Forcelinepd);
       }
     }
   } else if (ui->AnkleCenterButton->isChecked()) {
     if (iskneeDefined) {
       if (isfemoralDefined) {
-        points->InsertNextPoint(m_FemoralCenter);
-        points->InsertNextPoint(m_KneeCenter);
-        points->InsertNextPoint(m_AnkleMoveCenter);
-        auto idlist = vtkSmartPointer<vtkIdList>::New();
-        idlist->Initialize();
-        idlist->InsertNextId(0);
-        idlist->InsertNextId(1);
-        idlist->InsertNextId(2);
-        cells->InsertNextCell(idlist);
+        BuildLine(m_FemoralCenter, m_KneeCenter, m_AnkleMoveCenter,
+                  Forcelinepd);
+        BuildExtensionLine(m_FemoralCenter, m_KneeCenter, m_AnkleMoveCenter,
+                           Extensionlinepd);
       } else {
-        points->InsertNextPoint(m_KneeCenter);
-        points->InsertNextPoint(m_AnkleMoveCenter);
-        auto idlist = vtkSmartPointer<vtkIdList>::New();
-        idlist->Initialize();
-        idlist->InsertNextId(0);
-        idlist->InsertNextId(1);
-        cells->InsertNextCell(idlist);
+        BuildLine(m_KneeCenter, m_AnkleMoveCenter, Forcelinepd);
       }
     }
   } else {
     if (isfemoralDefined && iskneeDefined && isankleDefined) {
-      points->InsertNextPoint(m_FemoralCenter);
-      points->InsertNextPoint(m_KneeCenter);
-      points->InsertNextPoint(m_AnkleCenter);
-      auto idlist = vtkSmartPointer<vtkIdList>::New();
-      idlist->Initialize();
-      idlist->InsertNextId(0);
-      idlist->InsertNextId(1);
-      idlist->InsertNextId(2);
-      cells->InsertNextCell(idlist);
+      BuildLine(m_FemoralCenter, m_KneeCenter, m_AnkleCenter, Forcelinepd);
+      BuildExtensionLine(m_FemoralCenter, m_KneeCenter, m_AnkleCenter,
+                         Extensionlinepd);
     } else if (isfemoralDefined && iskneeDefined) {
-      points->InsertNextPoint(m_FemoralCenter);
-      points->InsertNextPoint(m_KneeCenter);
-      auto idlist = vtkSmartPointer<vtkIdList>::New();
-      idlist->Initialize();
-      idlist->InsertNextId(0);
-      idlist->InsertNextId(1);
-      cells->InsertNextCell(idlist);
+      BuildLine(m_FemoralCenter, m_KneeCenter, Forcelinepd);
     } else if (iskneeDefined && isankleDefined) {
-      points->InsertNextPoint(m_KneeCenter);
-      points->InsertNextPoint(m_AnkleCenter);
-      auto idlist = vtkSmartPointer<vtkIdList>::New();
-      idlist->Initialize();
-      idlist->InsertNextId(0);
-      idlist->InsertNextId(1);
-      cells->InsertNextCell(idlist);
+      BuildLine(m_KneeCenter, m_AnkleCenter, Forcelinepd);
     } else
       return;
   }
 
-  pd->SetPoints(points);
-  pd->SetLines(cells);
-  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapper->SetInputData(pd);
-  m_ForceLineActor->SetMapper(mapper);
+  auto Forcelinemapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  Forcelinemapper->SetInputData(Forcelinepd);
+  m_ForceLineActor->SetMapper(Forcelinemapper);
+
+  auto Extensionmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  Extensionmapper->SetInputData(Extensionlinepd);
+  m_ExtensionLineActor->SetMapper(Extensionmapper);
   m_Render2D->GetRenderWindow()->Render();
 }
 
@@ -723,6 +681,118 @@ bool MainWindow::isDataNull(double data[]) {
     return 0;
   else
     return 1;
+}
+
+void MainWindow::BuildLine(double p1[], double p2[], vtkPolyData *out) {
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  points->Initialize();
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+
+  points->InsertNextPoint(p1);
+  points->InsertNextPoint(p2);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  cells->InsertNextCell(idlist);
+
+  out->SetPoints(points);
+  out->SetLines(cells);
+}
+
+void MainWindow::BuildLine(double p1[], double p2[], double p3[],
+                           vtkPolyData *out) {
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  points->Initialize();
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+
+  points->InsertNextPoint(p1);
+  points->InsertNextPoint(p2);
+  points->InsertNextPoint(p3);
+  auto idlist = vtkSmartPointer<vtkIdList>::New();
+  idlist->Initialize();
+  idlist->InsertNextId(0);
+  idlist->InsertNextId(1);
+  idlist->InsertNextId(2);
+  cells->InsertNextCell(idlist);
+
+  out->SetPoints(points);
+  out->SetLines(cells);
+}
+
+void MainWindow::BuildExtensionLine(double p1[], double p2[], double p3[],
+                                    vtkPolyData *out) {
+  double distance = sqrt(vtkMath::Distance2BetweenPoints(p2, p3));
+  double extensionvec[3];
+  for (int i = 0; i < 3; i++)
+    extensionvec[i] = p2[i] - p1[i];
+  vtkMath::Normalize(extensionvec);
+  double extendpt[3];
+  for (int i = 0; i < 3; i++)
+    extendpt[i] = p2[i] + distance * extensionvec[i];
+
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  points->Initialize();
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  int segment = 20;
+  int numOfSegment = distance / segment;
+  for (int i = 0; i < numOfSegment; i++) {
+    double pt[3];
+    for (int j = 0; j < 3; j++) {
+      pt[j] = p2[j] + segment * i * extensionvec[j];
+    }
+    points->InsertNextPoint(pt);
+    if (i % 2 == 0 && i < numOfSegment - 1) {
+      auto idlist = vtkSmartPointer<vtkIdList>::New();
+      idlist->Initialize();
+      idlist->InsertNextId(i);
+      idlist->InsertNextId(i + 1);
+      cells->InsertNextCell(idlist);
+    }
+  }
+  out->SetPoints(points);
+  out->SetLines(cells);
+
+  // for angle
+  double knee2angleVec[3];
+  for (int i = 0; i < 3; i++)
+    knee2angleVec[i] = p3[i] - p2[i];
+  vtkMath::Normalize(knee2angleVec);
+  double angle = vtkMath::DegreesFromRadians(
+      vtkMath::AngleBetweenVectors(knee2angleVec, extensionvec));
+  QString angleString = QString::number(angle);
+  char *ch;
+  QByteArray ba = angleString.toLocal8Bit();
+  ch = ba.data();
+  double anglePos[3];
+  double midvec[3];
+  for (int i = 0; i < 3; i++) {
+    midvec[i] = knee2angleVec[i] + extensionvec[i];
+  }
+  vtkMath::Normalize(midvec);
+
+  auto transform = vtkSmartPointer<vtkTransform>::New();
+  transform->RotateWXYZ(-angle, 0, 0, 1);
+  transform->Update();
+  double transvec[3];
+  transvec[0] = transform->TransformDoubleVector(midvec)[0];
+  transvec[1] = transform->TransformDoubleVector(midvec)[1];
+  transvec[2] = transform->TransformDoubleVector(midvec)[2];
+
+  for (int i = 0; i < 3; i++) {
+    anglePos[i] = transvec[i] * distance / 2 + p2[i];
+  }
+  auto vectext = vtkSmartPointer<vtkVectorText>::New();
+  vectext->SetText(ch);
+  vectext->Update();
+  auto textmapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  textmapper->SetInputData(vectext->GetOutput());
+  m_AngleFollower->SetMapper(textmapper);
+  m_AngleFollower->SetPosition(anglePos);
+  m_AngleFollower->SetScale(50);
 }
 
 void MainWindow::OnDICOMBrowser() { m_dicomBrowser->show(); }

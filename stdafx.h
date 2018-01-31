@@ -23,6 +23,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkCaptionActor2D.h>
 #include <vtkColorTransferFunction.h>
 #include <vtkEventQtSlotConnect.h>
+#include <vtkFollower.h>
 #include <vtkGPUVolumeRayCastMapper.h>
 #include <vtkGenericOpenGLRenderWindow.h>
 #include <vtkImageActor.h>
@@ -46,8 +47,11 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkSTLReader.h>
 #include <vtkSmartPointer.h>
 #include <vtkSphereWidget.h>
+#include <vtkTextActor.h>
+#include <vtkTextActor3D.h>.h>
 #include <vtkTextProperty.h>
 #include <vtkTransform.h>
+#include <vtkVectorText.h>
 #include <vtkVolume.h>
 #include <vtkVolumeProperty.h>
 #include <vtkWorldPointPicker.h>
