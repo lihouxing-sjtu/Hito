@@ -18,6 +18,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 
 #include <vtkActor.h>
 #include <vtkAnnotatedCubeActor.h>
+#include <vtkAppendPolyData.h>
 #include <vtkAxesActor.h>
 #include <vtkCamera.h>
 #include <vtkCaptionActor2D.h>
@@ -37,6 +38,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkOpenGLGPUVolumeRayCastMapper.h>
 #include <vtkOrientationMarkerWidget.h>
 #include <vtkPiecewiseFunction.h>
+#include <vtkPlane.h>
 #include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkPropAssembly.h>
@@ -48,7 +50,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkSmartPointer.h>
 #include <vtkSphereWidget.h>
 #include <vtkTextActor.h>
-#include <vtkTextActor3D.h>.h>
+#include <vtkTextActor3D.h>
 #include <vtkTextProperty.h>
 #include <vtkTransform.h>
 #include <vtkVectorText.h>

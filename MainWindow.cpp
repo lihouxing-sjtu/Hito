@@ -127,7 +127,35 @@ MainWindow::MainWindow(QWidget *parent)
     m_FemoralCenter[i] = 0;
     m_KneeCenter[i] = 0;
     m_AnkleCenter[i] = 0;
+    m_XRayRegionFixCenter[i] = 0;
   }
+
+  // for registration
+  m_moveXrayActor = vtkSmartPointer<vtkActor>::New();
+  m_moveXrayActor->GetProperty()->SetColor(1, 0, 0);
+  m_moveXrayActor->GetProperty()->SetLineWidth(5);
+  m_Render2D->AddActor(m_moveXrayActor);
+
+  m_fixXrayActor = vtkSmartPointer<vtkActor>::New();
+  m_fixXrayActor->GetProperty()->SetColor(0, 0, 1);
+  m_fixXrayActor->GetProperty()->SetLineWidth(5);
+  m_fixXrayActor->GetProperty()->SetOpacity(0.75);
+  m_Render2D->AddActor(m_fixXrayActor);
+
+  m_XRayLength = 400;
+
+  m_moveCTActor = vtkSmartPointer<vtkActor>::New();
+  m_moveCTActor->GetProperty()->SetColor(1, 0, 0);
+  m_moveCTActor->GetProperty()->SetLineWidth(5);
+  m_Render3D->AddActor(m_moveCTActor);
+
+  m_fixCTActor = vtkSmartPointer<vtkActor>::New();
+  m_fixCTActor->GetProperty()->SetColor(1, 0, 0);
+  m_fixCTActor->GetProperty()->SetLineWidth(5);
+  m_Render3D->AddActor(m_fixCTActor);
+
+  m_CTLength = 100;
+
   this->SetUpSphereWidet();
   this->SetUpOrientationWidget();
   connect(ui->DICOMBrowserButton, SIGNAL(clicked(bool)), this,
@@ -156,6 +184,11 @@ MainWindow::MainWindow(QWidget *parent)
 
   connect(ui->AnkleCenterButton, SIGNAL(clicked(bool)), this,
           SLOT(OnAnkleCenterButton()));
+
+  connect(ui->XRayRegionButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnXRayRegionButton()));
+  connect(ui->CTRegionButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnCTRegionButton()));
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -237,6 +270,66 @@ void MainWindow::SetUpSphereWidet() {
   m_AnkleOrigion->GetSphereProperty()->SetColor(1, 1, 0);
   m_vtkqtConnector->Connect(m_AnkleOrigion, vtkCommand::InteractionEvent, this,
                             SLOT(OnAnkleOrigionChange()));
+
+  // for xray region
+  m_XrayRegionWidgetP1 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_XrayRegionWidgetP1->SetInteractor(m_Interactor2D);
+  m_XrayRegionWidgetP1->SetRepresentationToSurface();
+  m_XrayRegionWidgetP1->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_XrayRegionWidgetP1, vtkCommand::InteractionEvent,
+                            this, SLOT(OnXRayRegionSideChanged()));
+  m_XrayRegionWidgetP2 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_XrayRegionWidgetP2->SetInteractor(m_Interactor2D);
+  m_XrayRegionWidgetP2->SetRepresentationToSurface();
+  m_XrayRegionWidgetP2->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_XrayRegionWidgetP2, vtkCommand::InteractionEvent,
+                            this, SLOT(OnXRayRegionSideChanged()));
+  m_XrayRegionWidgetP3 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_XrayRegionWidgetP3->SetInteractor(m_Interactor2D);
+  m_XrayRegionWidgetP3->SetRepresentationToSurface();
+  m_XrayRegionWidgetP3->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_XrayRegionWidgetP3, vtkCommand::InteractionEvent,
+                            this, SLOT(OnXRayRegionSideChanged()));
+  m_XrayRegionWidgetP4 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_XrayRegionWidgetP4->SetInteractor(m_Interactor2D);
+  m_XrayRegionWidgetP4->SetRepresentationToSurface();
+  m_XrayRegionWidgetP4->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_XrayRegionWidgetP4, vtkCommand::InteractionEvent,
+                            this, SLOT(OnXRayRegionSideChanged()));
+  m_XRayRegionWidgetOrigon = vtkSmartPointer<vtkSphereWidget>::New();
+  m_XRayRegionWidgetOrigon->SetInteractor(m_Interactor2D);
+  m_XRayRegionWidgetOrigon->SetRepresentationToSurface();
+  m_XRayRegionWidgetOrigon->GetSphereProperty()->SetColor(1, 1, 0);
+  m_vtkqtConnector->Connect(m_XRayRegionWidgetOrigon,
+                            vtkCommand::InteractionEvent, this,
+                            SLOT(OnXRayRegionSideChanged()));
+
+  // for ct region
+  m_CTRegionWidgetP1 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP1);
+  m_CTRegionWidgetP2 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP2);
+  m_CTRegionWidgetP3 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP3);
+  m_CTRegionWidgetP4 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP4);
+  m_CTRegionWidgetP5 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP5);
+  m_CTRegionWidgetP6 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP6);
+  m_CTRegionWidgetP7 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP7);
+  m_CTRegionWidgetP8 = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetP8);
+  m_CTRegionWidgetOrigion = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTSphereList.append(m_CTRegionWidgetOrigion);
+  foreach (vtkSmartPointer<vtkSphereWidget> var, m_CTSphereList) {
+    var->SetInteractor(m_Interactor3D);
+    var->SetRepresentationToSurface();
+    var->GetSphereProperty()->SetColor(1, 1, 0);
+    m_vtkqtConnector->Connect(var, vtkCommand::InteractionEvent, this,
+                              SLOT(OnCTRegionChanged()));
+  }
 }
 
 void MainWindow::SetUpOrientationWidget() {
@@ -683,6 +776,14 @@ bool MainWindow::isDataNull(double data[]) {
     return 1;
 }
 
+bool MainWindow::isEqual(double p1[], double p2[]) {
+  for (int i = 0; i < 3; i++) {
+    if (p1[i] != p2[i])
+      return true;
+  }
+  return false;
+}
+
 void MainWindow::BuildLine(double p1[], double p2[], vtkPolyData *out) {
   auto points = vtkSmartPointer<vtkPoints>::New();
   points->Initialize();
@@ -757,10 +858,20 @@ void MainWindow::BuildExtensionLine(double p1[], double p2[], double p3[],
   out->SetLines(cells);
 
   // for angle
+  double planeOrigion[3];
+  m_imageXRay->GetOrigin(planeOrigion);
+  planeOrigion[2] += 10;
+  auto plane = vtkSmartPointer<vtkPlane>::New();
+  plane->SetNormal(0, 0, 1);
+  plane->SetOrigin(planeOrigion);
+
   double knee2angleVec[3];
   for (int i = 0; i < 3; i++)
     knee2angleVec[i] = p3[i] - p2[i];
   vtkMath::Normalize(knee2angleVec);
+
+  plane->ProjectVector(extensionvec, extensionvec);
+  plane->ProjectVector(knee2angleVec, knee2angleVec);
   double angle = vtkMath::DegreesFromRadians(
       vtkMath::AngleBetweenVectors(knee2angleVec, extensionvec));
   QString angleString = QString::number(angle);
@@ -793,6 +904,134 @@ void MainWindow::BuildExtensionLine(double p1[], double p2[], double p3[],
   m_AngleFollower->SetMapper(textmapper);
   m_AngleFollower->SetPosition(anglePos);
   m_AngleFollower->SetScale(50);
+}
+
+void MainWindow::BuildFrame(double p1[], double p2[], double p3[], double p4[],
+                            vtkPolyData *out) {
+  double sp1[3], sp2[3], sp3[3], sp4[3];
+  for (int i = 0; i < 3; i++) {
+    sp1[i] = p1[i];
+    sp2[i] = p2[i];
+    sp3[i] = p3[i];
+    sp4[i] = p4[i];
+  }
+  double segment = 30;
+  auto line12 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(sp1, sp2, segment, line12);
+
+  auto line23 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(sp2, sp3, segment, line23);
+
+  auto line34 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(sp3, sp4, segment, line34);
+
+  auto line41 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(sp4, sp1, segment, line41);
+
+  auto appender = vtkSmartPointer<vtkAppendPolyData>::New();
+  appender->AddInputData(line12);
+  appender->AddInputData(line23);
+  appender->AddInputData(line34);
+  appender->AddInputData(line41);
+  appender->Update();
+
+  out->DeepCopy(appender->GetOutput());
+}
+
+void MainWindow::BuildDottedLine(double p1[], double p2[], double segment,
+                                 vtkPolyData *out) {
+  double sp1[3], sp2[3];
+  double p2top1[3];
+  for (int i = 0; i < 3; i++) {
+    sp1[i] = p1[i];
+    sp2[i] = p2[i];
+    p2top1[i] = sp2[i] - sp1[i];
+  }
+  vtkMath::Normalize(p2top1);
+
+  double p1distancep2 = sqrt(vtkMath::Distance2BetweenPoints(sp1, sp2));
+
+  int numOfSegment1 = p1distancep2 / segment;
+  auto points12 = vtkSmartPointer<vtkPoints>::New();
+  points12->Initialize();
+  auto cells12 = vtkSmartPointer<vtkCellArray>::New();
+  cells12->Initialize();
+  for (int i = 0; i < numOfSegment1; i++) {
+    double pt[3];
+    for (int j = 0; j < 3; j++) {
+      pt[j] = sp1[j] + p2top1[j] * segment * i;
+    }
+    points12->InsertNextPoint(pt);
+    if (i % 2 == 0 && i < numOfSegment1 - 1) {
+      auto idlist = vtkSmartPointer<vtkIdList>::New();
+      idlist->Initialize();
+      idlist->InsertNextId(i);
+      idlist->InsertNextId(i + 1);
+      cells12->InsertNextCell(idlist);
+    }
+  }
+  out->SetPoints(points12);
+  out->SetLines(cells12);
+}
+
+void MainWindow::BuildBox(double p1[], double p2[], double p3[], double p4[],
+                          double p5[], double p6[], double p7[], double p8[],
+                          vtkPolyData *out) {
+
+  double segment = 20;
+
+  auto line12 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p1, p2, segment, line12);
+
+  auto line23 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p2, p3, segment, line23);
+
+  auto line34 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p3, p4, segment, line34);
+
+  auto line41 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p4, p1, segment, line41);
+
+  auto line56 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p5, p6, segment, line56);
+
+  auto line67 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p6, p7, segment, line67);
+
+  auto line78 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p7, p8, segment, line78);
+
+  auto line85 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p8, p5, segment, line85);
+
+  auto line15 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p1, p5, segment, line15);
+
+  auto line26 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p2, p6, segment, line26);
+
+  auto line37 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p3, p7, segment, line37);
+
+  auto line48 = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildDottedLine(p4, p8, segment, line48);
+
+  auto appender = vtkSmartPointer<vtkAppendPolyData>::New();
+  appender->AddInputData(line12);
+  appender->AddInputData(line23);
+  appender->AddInputData(line34);
+  appender->AddInputData(line41);
+  appender->AddInputData(line56);
+  appender->AddInputData(line67);
+  appender->AddInputData(line78);
+  appender->AddInputData(line85);
+  appender->AddInputData(line15);
+  appender->AddInputData(line26);
+  appender->AddInputData(line37);
+  appender->AddInputData(line48);
+  appender->Update();
+
+  out->DeepCopy(appender->GetOutput());
 }
 
 void MainWindow::OnDICOMBrowser() { m_dicomBrowser->show(); }
@@ -1591,7 +1830,6 @@ void MainWindow::OnAnkleOrigionChange() {
   }
   m_AnkleP1->SetCenter(p1);
   m_AnkleP2->SetCenter(p2);
-
   auto linepoints = vtkSmartPointer<vtkPoints>::New();
   linepoints->Initialize();
   linepoints->InsertNextPoint(p1);
@@ -1613,4 +1851,489 @@ void MainWindow::OnAnkleOrigionChange() {
   m_Render2D->GetRenderWindow()->Render();
 
   this->UpDateForceLine();
+}
+
+void MainWindow::OnXRayRegionButton() {
+  if (ui->XRayRegionButton->isChecked()) {
+    m_moveXrayActor->VisibilityOn();
+    m_fixXrayActor->VisibilityOff();
+    m_XrayRegionWidgetP1->Off();
+    m_XrayRegionWidgetP2->Off();
+    m_XrayRegionWidgetP3->Off();
+    m_XrayRegionWidgetP4->Off();
+    m_XRayRegionWidgetOrigon->Off();
+    ui->CTRegionButton->setDisabled(true);
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::MouseMoveEvent, this,
+                              SLOT(OnXRayRegionMove()));
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::LeftButtonPressEvent,
+                              this, SLOT(OnXRayRegionSet()));
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::KeyPressEvent, this,
+                              SLOT(OnXRayRegionLengthChanged()));
+  } else {
+    m_moveXrayActor->VisibilityOff();
+    m_fixXrayActor->VisibilityOn();
+    if (m_XRayRegionFixCenter[0] == 0 && m_XRayRegionFixCenter[1] == 0 &&
+        m_XRayRegionFixCenter[2] == 0) {
+    } else {
+      m_XrayRegionWidgetP1->On();
+      m_XrayRegionWidgetP1->On();
+      m_XrayRegionWidgetP1->On();
+      m_XrayRegionWidgetP1->On();
+      m_XRayRegionWidgetOrigon->On();
+    }
+    ui->CTRegionButton->setDisabled(false);
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::MouseMoveEvent,
+                                 this, SLOT(OnXRayRegionMove()));
+    m_vtkqtConnector->Disconnect(m_Interactor2D,
+                                 vtkCommand::LeftButtonPressEvent, this,
+                                 SLOT(OnXRayRegionSet()));
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::KeyPressEvent,
+                                 this, SLOT(OnXRayRegionLengthChanged()));
+  }
+}
+
+void MainWindow::OnXRayRegionMove() {
+  ui->Widget2D->setFocus();
+  QPoint mouse = ui->Widget2D->mapFromGlobal(QCursor::pos());
+
+  int x = mouse.x();
+  int y = ui->Widget2D->height() - mouse.y();
+
+  qDebug() << "move:" << x << " " << y;
+  double worldpos[4];
+  vtkInteractorObserver::ComputeDisplayToWorld(m_Render2D, x, y, 0, worldpos);
+  qDebug() << "world:" << worldpos[0] << " " << worldpos[1] << " "
+           << worldpos[2];
+  for (int i = 0; i < 3; i++)
+    m_XRayRegionMoveCenter[i] = worldpos[i];
+
+  //计算方框
+  double p1[3], p2[3], p3[3], p4[4];
+  double direct1[3] = {-1 / 3.0, 1, 0};
+  double direct2[3] = {1 / 3.0, 1, 0};
+  double direct3[3] = {1 / 3.0, -1, 0};
+  double direct4[3] = {-1 / 3.0, -1, 0};
+  for (int i = 0; i < 3; i++) {
+    p1[i] = m_XRayRegionMoveCenter[i] + m_XRayLength * direct1[i];
+    p2[i] = m_XRayRegionMoveCenter[i] + m_XRayLength * direct2[i];
+    p3[i] = m_XRayRegionMoveCenter[i] + m_XRayLength * direct3[i];
+    p4[i] = m_XRayRegionMoveCenter[i] + m_XRayLength * direct4[i];
+  }
+  auto framePd = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildFrame(p1, p2, p3, p4, framePd);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(framePd);
+  m_moveXrayActor->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+}
+
+void MainWindow::OnXRayRegionLengthChanged() {
+  char *key = m_Interactor2D->GetKeySym();
+  QString str = QString(QLatin1String(key));
+  qDebug() << key;
+  if (str == "equal") {
+    m_XRayLength += 50;
+  }
+  if (str == "minus") {
+    m_XRayLength -= 50;
+  }
+  OnXRayRegionMove();
+}
+
+void MainWindow::OnXRayRegionSet() {
+  for (int i = 0; i < 3; i++)
+    m_XRayRegionFixCenter[i] = m_XRayRegionMoveCenter[i];
+  //计算方框
+  double direct1[3] = {-1 / 3.0, 1, 0};
+  double direct2[3] = {1 / 3.0, 1, 0};
+  double direct3[3] = {1 / 3.0, -1, 0};
+  double direct4[3] = {-1 / 3.0, -1, 0};
+  for (int i = 0; i < 3; i++) {
+    m_XRayRegionPts[0][i] =
+        m_XRayRegionFixCenter[i] + m_XRayLength * direct1[i];
+    m_XRayRegionPts[1][i] =
+        m_XRayRegionFixCenter[i] + m_XRayLength * direct2[i];
+    m_XRayRegionPts[2][i] =
+        m_XRayRegionFixCenter[i] + m_XRayLength * direct3[i];
+    m_XRayRegionPts[3][i] =
+        m_XRayRegionFixCenter[i] + m_XRayLength * direct4[i];
+    m_XRayRegionPts[4][i] = m_XRayRegionMoveCenter[i];
+  }
+
+  auto framePd = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildFrame(m_XRayRegionPts[0], m_XRayRegionPts[1], m_XRayRegionPts[2],
+                   m_XRayRegionPts[3], framePd);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(framePd);
+  m_fixXrayActor->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+
+  ui->XRayRegionButton->setChecked(false);
+  this->OnXRayRegionButton();
+  for (int i = 0; i < 5; i++) {
+    m_XRayRegionPts[i][2] += 10;
+  }
+  m_XrayRegionWidgetP1->SetCenter(m_XRayRegionPts[0]);
+  m_XrayRegionWidgetP1->SetRadius(10);
+  m_XrayRegionWidgetP1->On();
+
+  m_XrayRegionWidgetP2->SetCenter(m_XRayRegionPts[1]);
+  m_XrayRegionWidgetP2->SetRadius(10);
+  m_XrayRegionWidgetP2->On();
+
+  m_XrayRegionWidgetP3->SetCenter(m_XRayRegionPts[2]);
+  m_XrayRegionWidgetP3->SetRadius(10);
+  m_XrayRegionWidgetP3->On();
+
+  m_XrayRegionWidgetP4->SetCenter(m_XRayRegionPts[3]);
+  m_XrayRegionWidgetP4->SetRadius(10);
+  m_XrayRegionWidgetP4->On();
+
+  m_XRayRegionWidgetOrigon->SetCenter(m_XRayRegionPts[4]);
+  m_XRayRegionWidgetOrigon->SetRadius(10);
+  m_XRayRegionWidgetOrigon->On();
+  this->OnXRayRegionSideChanged();
+}
+
+void MainWindow::OnXRayRegionSideChanged() {
+  double p1[3], p2[3], p3[3], p4[3], p5[3];
+  m_XrayRegionWidgetP1->GetCenter(p1);
+  m_XrayRegionWidgetP2->GetCenter(p2);
+  m_XrayRegionWidgetP3->GetCenter(p3);
+  m_XrayRegionWidgetP4->GetCenter(p4);
+  m_XRayRegionWidgetOrigon->GetCenter(p5);
+  bool isp1changed = isEqual(p1, m_XRayRegionPts[0]);
+  bool isp2changed = isEqual(p2, m_XRayRegionPts[1]);
+  bool isp3changed = isEqual(p3, m_XRayRegionPts[2]);
+  bool isp4changed = isEqual(p4, m_XRayRegionPts[3]);
+  bool isp5changed = isEqual(p5, m_XRayRegionPts[4]);
+  qDebug() << isp1changed << "  " << isp2changed << "  " << isp3changed << "  "
+           << isp4changed << "  " << isp5changed << "  ";
+  double distance[3];
+
+  if (isp1changed) {
+    for (int i = 0; i < 3; i++) {
+      distance[i] = p1[i] - m_XRayRegionPts[0][i];
+      m_XRayRegionPts[0][i] = p1[i];
+      m_XRayRegionPts[4][i] += distance[i] / 2;
+    }
+    m_XRayRegionPts[1][1] += distance[1];
+    m_XRayRegionPts[3][0] += distance[0];
+  }
+  if (isp2changed) {
+    for (int i = 0; i < 3; i++) {
+      distance[i] = p2[i] - m_XRayRegionPts[1][i];
+      m_XRayRegionPts[1][i] = p2[i];
+      m_XRayRegionPts[4][i] += distance[i] / 2;
+    }
+    m_XRayRegionPts[0][1] += distance[1];
+    m_XRayRegionPts[2][0] += distance[0];
+  }
+  if (isp3changed) {
+    for (int i = 0; i < 3; i++) {
+      distance[i] = p3[i] - m_XRayRegionPts[2][i];
+      m_XRayRegionPts[2][i] = p3[i];
+      m_XRayRegionPts[4][i] += distance[i] / 2;
+    }
+    m_XRayRegionPts[3][1] += distance[1];
+    m_XRayRegionPts[1][0] += distance[0];
+  }
+  if (isp4changed) {
+    for (int i = 0; i < 3; i++) {
+      distance[i] = p4[i] - m_XRayRegionPts[3][i];
+      m_XRayRegionPts[3][i] = p4[i];
+      m_XRayRegionPts[4][i] += distance[i] / 2;
+    }
+    m_XRayRegionPts[2][1] += distance[1];
+    m_XRayRegionPts[0][0] += distance[0];
+  }
+  if (isp5changed) {
+    for (int i = 0; i < 3; i++) {
+      distance[i] = p5[i] - m_XRayRegionPts[4][i];
+      m_XRayRegionPts[4][i] = p5[i];
+    }
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 3; j++)
+        m_XRayRegionPts[i][j] += distance[j];
+    }
+  }
+  m_XrayRegionWidgetP1->SetCenter(m_XRayRegionPts[0]);
+
+  m_XrayRegionWidgetP2->SetCenter(m_XRayRegionPts[1]);
+
+  m_XrayRegionWidgetP3->SetCenter(m_XRayRegionPts[2]);
+
+  m_XrayRegionWidgetP4->SetCenter(m_XRayRegionPts[3]);
+
+  m_XRayRegionWidgetOrigon->SetCenter(m_XRayRegionPts[4]);
+
+  auto framePd = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildFrame(m_XRayRegionPts[0], m_XRayRegionPts[1], m_XRayRegionPts[2],
+                   m_XRayRegionPts[3], framePd);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(framePd);
+  m_fixXrayActor->SetMapper(mapper);
+  m_Render2D->GetRenderWindow()->Render();
+}
+
+void MainWindow::OnCTRegionButton() {
+  if (ui->CTRegionButton->isChecked()) {
+    m_moveCTActor->VisibilityOn();
+    m_fixCTActor->VisibilityOff();
+    ui->XRayRegionButton->setDisabled(true);
+    m_vtkqtConnector->Connect(m_Interactor3D, vtkCommand::MouseMoveEvent, this,
+                              SLOT(OnCTRegionMove()));
+    m_vtkqtConnector->Connect(m_Interactor3D, vtkCommand::RightButtonPressEvent,
+                              this, SLOT(OnCTRegionSet()));
+  } else {
+    m_moveCTActor->VisibilityOff();
+    m_fixCTActor->VisibilityOn();
+    ui->XRayRegionButton->setDisabled(false);
+    m_vtkqtConnector->Disconnect(m_Interactor3D, vtkCommand::MouseMoveEvent,
+                                 this, SLOT(OnCTRegionMove()));
+    m_vtkqtConnector->Disconnect(m_Interactor3D,
+                                 vtkCommand::RightButtonPressEvent, this,
+                                 SLOT(OnCTRegionSet()));
+  }
+}
+
+void MainWindow::OnCTRegionMove() {
+  ui->Widget3D->setFocus();
+  QPoint mouse = ui->Widget3D->mapFromGlobal(QCursor::pos());
+
+  int x = mouse.x();
+  int y = ui->Widget3D->height() - mouse.y();
+
+  qDebug() << "move:" << x << " " << y;
+  double worldpos[4];
+  vtkInteractorObserver::ComputeDisplayToWorld(m_Render3D, x, y, 0, worldpos);
+  qDebug() << "world:" << worldpos[0] << " " << worldpos[1] << " "
+           << worldpos[2];
+  for (int i = 0; i < 3; i++)
+    m_CTRegionMoveCenter[i] = worldpos[i];
+  double cameradirection[3];
+  double planecenter[3];
+  for (int i = 0; i < 3; i++) {
+    cameradirection[i] =
+        m_Render3D->GetActiveCamera()->GetDirectionOfProjection()[i];
+    planecenter[i] = m_imageVolume->GetCenter()[i];
+  }
+  auto plane = vtkSmartPointer<vtkPlane>::New();
+  plane->SetOrigin(planecenter);
+  plane->SetNormal(cameradirection);
+
+  plane->ProjectPoint(m_CTRegionMoveCenter, m_CTRegionMoveCenter);
+  double direction[8][3] = {{-1, -1, 1.5}, {1, -1, 1.5},   {1, 1, 1.5},
+                            {-1, 1, 1.5},  {-1, -1, -1.5}, {1, -1, -1.5},
+                            {1, 1, -1.5},  {-1, 1, -1.5}};
+  double p[8][3];
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 3; j++) {
+      p[i][j] = m_CTRegionMoveCenter[j] + m_CTLength * direction[i][j];
+    }
+  }
+  auto box = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildBox(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], box);
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(box);
+  m_moveCTActor->SetMapper(mapper);
+  m_Render3D->GetRenderWindow()->Render();
+}
+
+void MainWindow::OnCTRegionSet() {
+  for (int i = 0; i < 3; i++) {
+    m_CTRegionFixCenter[i] = m_CTRegionMoveCenter[i];
+  }
+  double direction[8][3] = {{-1, -1, 1.5}, {1, -1, 1.5},   {1, 1, 1.5},
+                            {-1, 1, 1.5},  {-1, -1, -1.5}, {1, -1, -1.5},
+                            {1, 1, -1.5},  {-1, 1, -1.5}};
+  for (int i = 0; i < 9; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == 8)
+        m_CTRegionPts[i][j] = m_CTRegionFixCenter[j];
+      else
+        m_CTRegionPts[i][j] =
+            m_CTRegionFixCenter[j] + m_CTLength * direction[i][j];
+    }
+  }
+
+  auto box = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildBox(m_CTRegionPts[0], m_CTRegionPts[1], m_CTRegionPts[2],
+                 m_CTRegionPts[3], m_CTRegionPts[4], m_CTRegionPts[5],
+                 m_CTRegionPts[6], m_CTRegionPts[7], box);
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(box);
+  m_fixCTActor->SetMapper(mapper);
+  m_Render3D->GetRenderWindow()->Render();
+  ui->CTRegionButton->setChecked(false);
+  this->OnCTRegionButton();
+
+  for (int i = 0; i < 9; i++) {
+    m_CTSphereList.at(i)->SetCenter(m_CTRegionPts[i]);
+    m_CTSphereList.at(i)->SetRadius(10);
+    m_CTSphereList.at(i)->On();
+  }
+}
+
+void MainWindow::OnCTRegionChanged() {
+  double p[3];
+  int changedIndex = -1;
+  double distance[3];
+  for (int m = 0; m < 9; m++) {
+    m_CTSphereList.at(m)->GetCenter(p);
+    if (isEqual(p, m_CTRegionPts[m])) {
+      changedIndex = m;
+      for (int i = 0; i < 3; i++) {
+        distance[i] = p[i] - m_CTRegionPts[m][i];
+        m_CTRegionPts[m][i] = p[i];
+      }
+      break;
+    }
+  }
+  if (changedIndex == -1)
+    return;
+  if (changedIndex != 8) {
+    for (int i = 0; i < 3; i++)
+      m_CTRegionPts[8][i] += distance[i] * 0.5;
+  }
+  qDebug() << changedIndex;
+
+  if (changedIndex == 0) {
+    m_CTRegionPts[4][0] += distance[0];
+    m_CTRegionPts[4][1] += distance[1];
+
+    m_CTRegionPts[1][2] += distance[2];
+    m_CTRegionPts[1][1] += distance[1];
+
+    m_CTRegionPts[3][2] += distance[2];
+    m_CTRegionPts[3][0] += distance[0];
+
+    m_CTRegionPts[2][2] += distance[2];
+    m_CTRegionPts[5][1] += distance[1];
+    m_CTRegionPts[7][0] += distance[0];
+  }
+  if (changedIndex == 1) {
+    m_CTRegionPts[0][2] += distance[2];
+    m_CTRegionPts[0][1] += distance[1];
+
+    m_CTRegionPts[5][0] += distance[0];
+    m_CTRegionPts[5][1] += distance[1];
+
+    m_CTRegionPts[2][2] += distance[2];
+    m_CTRegionPts[2][0] += distance[0];
+
+    m_CTRegionPts[6][0] += distance[0];
+    m_CTRegionPts[4][1] += distance[1];
+    m_CTRegionPts[3][2] += distance[2];
+  }
+  if (changedIndex == 2) {
+    m_CTRegionPts[1][2] += distance[2];
+    m_CTRegionPts[1][0] += distance[0];
+
+    m_CTRegionPts[3][2] += distance[2];
+    m_CTRegionPts[3][1] += distance[1];
+
+    m_CTRegionPts[6][1] += distance[1];
+    m_CTRegionPts[6][0] += distance[0];
+
+    m_CTRegionPts[0][2] += distance[2];
+    m_CTRegionPts[7][1] += distance[1];
+    m_CTRegionPts[5][0] += distance[0];
+  }
+  if (changedIndex == 3) {
+    m_CTRegionPts[0][2] += distance[2];
+    m_CTRegionPts[0][0] += distance[0];
+
+    m_CTRegionPts[2][2] += distance[2];
+    m_CTRegionPts[2][1] += distance[1];
+
+    m_CTRegionPts[7][1] += distance[1];
+    m_CTRegionPts[7][0] += distance[0];
+
+    m_CTRegionPts[4][0] += distance[0];
+    m_CTRegionPts[6][1] += distance[1];
+    m_CTRegionPts[1][2] += distance[2];
+  }
+  if (changedIndex == 4) {
+    m_CTRegionPts[0][1] += distance[1];
+    m_CTRegionPts[0][0] += distance[0];
+
+    m_CTRegionPts[5][2] += distance[2];
+    m_CTRegionPts[5][1] += distance[1];
+
+    m_CTRegionPts[7][2] += distance[2];
+    m_CTRegionPts[7][0] += distance[0];
+
+    m_CTRegionPts[3][0] += distance[0];
+    m_CTRegionPts[1][1] += distance[1];
+    m_CTRegionPts[6][2] += distance[2];
+  }
+  if (changedIndex == 5) {
+    m_CTRegionPts[1][1] += distance[1];
+    m_CTRegionPts[1][0] += distance[0];
+
+    m_CTRegionPts[4][2] += distance[2];
+    m_CTRegionPts[4][1] += distance[1];
+
+    m_CTRegionPts[6][2] += distance[2];
+    m_CTRegionPts[6][0] += distance[0];
+
+    m_CTRegionPts[0][1] += distance[1];
+    m_CTRegionPts[2][0] += distance[0];
+    m_CTRegionPts[7][2] += distance[2];
+  }
+  if (changedIndex == 6) {
+    m_CTRegionPts[2][1] += distance[1];
+    m_CTRegionPts[2][0] += distance[0];
+
+    m_CTRegionPts[5][2] += distance[2];
+    m_CTRegionPts[5][0] += distance[0];
+
+    m_CTRegionPts[7][2] += distance[2];
+    m_CTRegionPts[7][1] += distance[1];
+
+    m_CTRegionPts[1][0] += distance[0];
+    m_CTRegionPts[3][1] += distance[1];
+    m_CTRegionPts[4][2] += distance[2];
+  }
+
+  if (changedIndex == 7) {
+    m_CTRegionPts[3][1] += distance[1];
+    m_CTRegionPts[3][0] += distance[0];
+
+    m_CTRegionPts[4][2] += distance[2];
+    m_CTRegionPts[4][0] += distance[0];
+
+    m_CTRegionPts[6][2] += distance[2];
+    m_CTRegionPts[6][1] += distance[1];
+
+    m_CTRegionPts[0][0] += distance[0];
+    m_CTRegionPts[2][1] += distance[1];
+    m_CTRegionPts[5][2] += distance[2];
+  }
+  if (changedIndex == 8) {
+
+    for (int i = 0; i < 8; i++) {
+      for (int j = 0; j < 3; j++) {
+        m_CTRegionPts[i][j] += distance[j];
+      }
+    }
+  }
+
+  for (int i = 0; i < 9; i++) {
+    m_CTSphereList.at(i)->SetCenter(m_CTRegionPts[i]);
+  }
+  auto box = vtkSmartPointer<vtkPolyData>::New();
+  this->BuildBox(m_CTRegionPts[0], m_CTRegionPts[1], m_CTRegionPts[2],
+                 m_CTRegionPts[3], m_CTRegionPts[4], m_CTRegionPts[5],
+                 m_CTRegionPts[6], m_CTRegionPts[7], box);
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(box);
+  m_fixCTActor->SetMapper(mapper);
+  m_Render3D->GetRenderWindow()->Render();
+  ui->CTRegionButton->setChecked(false);
+  this->OnCTRegionButton();
 }

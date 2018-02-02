@@ -100,6 +100,37 @@ private:
 
   vtkSmartPointer<vtkFollower> m_AngleFollower;
 
+  // for registration
+  vtkSmartPointer<vtkActor> m_moveXrayActor;
+  vtkSmartPointer<vtkActor> m_fixXrayActor;
+  double m_XRayRegionMoveCenter[3];
+  double m_XRayRegionFixCenter[3];
+  double m_XRayLength;
+  double m_XRayRegionPts[5][3];
+  vtkSmartPointer<vtkSphereWidget> m_XrayRegionWidgetP1;
+  vtkSmartPointer<vtkSphereWidget> m_XrayRegionWidgetP2;
+  vtkSmartPointer<vtkSphereWidget> m_XrayRegionWidgetP3;
+  vtkSmartPointer<vtkSphereWidget> m_XrayRegionWidgetP4;
+  vtkSmartPointer<vtkSphereWidget> m_XRayRegionWidgetOrigon;
+
+  vtkSmartPointer<vtkActor> m_moveCTActor;
+  vtkSmartPointer<vtkActor> m_fixCTActor;
+  double m_CTRegionMoveCenter[3];
+  double m_CTRegionFixCenter[3];
+  double m_CTLength;
+
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP1;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP2;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP3;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP4;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP5;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP6;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP7;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP8;
+  vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetOrigion;
+  QList<vtkSmartPointer<vtkSphereWidget>> m_CTSphereList;
+  double m_CTRegionPts[9][3];
+
 protected:
   virtual void closeEvent(QCloseEvent *event);
   void SetUpSphereWidet();
@@ -111,10 +142,17 @@ protected:
                        double outcenter[], double &outradius);
   void UpDateForceLine();
   bool isDataNull(double data[]);
+  bool isEqual(double p1[], double p2[]);
   void BuildLine(double p1[], double p2[], vtkPolyData *out);
   void BuildLine(double p1[], double p2[], double p3[], vtkPolyData *out);
   void BuildExtensionLine(double p1[], double p2[], double p3[],
                           vtkPolyData *out);
+  void BuildFrame(double p1[], double p2[], double p3[], double p4[],
+                  vtkPolyData *out);
+  void BuildDottedLine(double p1[], double p2[], double segment,
+                       vtkPolyData *out);
+  void BuildBox(double p1[], double p2[], double p3[], double p4[], double p5[],
+                double p6[], double p7[], double p8[], vtkPolyData *out);
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
@@ -148,6 +186,19 @@ protected slots:
   void OnAnkleSet();
   void OnAnkleSideChanged();
   void OnAnkleOrigionChange();
+
+  // for x-ray region
+  void OnXRayRegionButton();
+  void OnXRayRegionMove();
+  void OnXRayRegionLengthChanged();
+  void OnXRayRegionSet();
+  void OnXRayRegionSideChanged();
+
+  // for ct region
+  void OnCTRegionButton();
+  void OnCTRegionMove();
+  void OnCTRegionSet();
+  void OnCTRegionChanged();
 };
 
 #endif // MAINWINDOW_H
