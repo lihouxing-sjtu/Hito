@@ -43,7 +43,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkPolyDataMapper.h>
 #include <vtkPropAssembly.h>
 #include <vtkProperty.h>
-#include <vtkRenderWindow.h>
+#include <vtkRenderWindow.h>,,,,,,
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
 #include <vtkSTLReader.h>
@@ -61,6 +61,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <itkCenteredEuler3DTransform.h>
 #include <itkGDCMImageIO.h>
 #include <itkGDCMSeriesFileNames.h>
+#include <itkImageRegionIterator.h>
 #include <itkImageSeriesReader.h>
 #include <itkImageToVTKImageFilter.h>
 #include <itkRayCastInterpolateImageFunction.h>

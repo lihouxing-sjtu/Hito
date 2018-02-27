@@ -25,7 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
   m_Render3D = vtkSmartPointer<vtkRenderer>::New();
   m_Render3D->GradientBackgroundOn();
   m_Render3D->SetBackground(1, 1, 1);
-  m_Render3D->SetBackground2(1, 1, 1);
+  m_Render3D->SetBackground2(0, 1, 1);
 
   m_GenericRendWin3D->AddRenderer(m_Render3D);
   m_Interactor3D = vtkSmartPointer<vtkRenderWindowInteractor>::New();
@@ -154,6 +154,9 @@ MainWindow::MainWindow(QWidget *parent)
   m_fixCTActor->GetProperty()->SetLineWidth(5);
   m_Render3D->AddActor(m_fixCTActor);
 
+  m_xrayIn3D = vtkSmartPointer<vtkImageActor>::New();
+  m_CTRegionVolume = vtkSmartPointer<vtkVolume>::New();
+
   m_CTLength = 100;
 
   this->SetUpSphereWidet();
@@ -189,6 +192,16 @@ MainWindow::MainWindow(QWidget *parent)
           SLOT(OnXRayRegionButton()));
   connect(ui->CTRegionButton, SIGNAL(clicked(bool)), this,
           SLOT(OnCTRegionButton()));
+
+  connect(ui->XRayIn3DVisibilityButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnXrayIn3DVisibilityButton()));
+  connect(ui->StartRegistrationButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnStartRegestration()));
+
+  connect(ui->CTVolumeVisibilityButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnCTVolumeVisibility()));
+  connect(ui->CTRegionVolumeVisibilityButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnCTRegionVisibilityButton()));
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -1034,6 +1047,275 @@ void MainWindow::BuildBox(double p1[], double p2[], double p3[], double p4[],
   out->DeepCopy(appender->GetOutput());
 }
 
+void MainWindow::ExtractXRayRegion() {
+  // generate origion xray
+  const unsigned int Dimension = 3;
+  typedef short InputPixelType;
+  typedef short OutputPixleType;
+  typedef itk::Image<InputPixelType, Dimension> InputImageType;
+
+  typedef itk::VTKImageToImageFilter<InputImageType> VTKImageToImageType;
+  VTKImageToImageType::Pointer m_xrayfromvtk = VTKImageToImageType::New();
+  m_xrayfromvtk->SetInput(m_imageXRay);
+  m_xrayfromvtk->Update();
+
+  typedef unsigned char OutputPixelType;
+
+  typedef itk::Image<InputPixelType, Dimension> InputImageType;
+  typedef itk::Image<OutputPixelType, Dimension> OutputImageType;
+
+  InputImageType::Pointer xrayimage;
+  xrayimage = m_xrayfromvtk->GetOutput();
+
+  // projection plane
+  double xrayPlaneCenter[3];
+  m_imageXRay->GetOrigin(xrayPlaneCenter);
+  auto xrayPlane = vtkSmartPointer<vtkPlane>::New();
+  xrayPlane->SetOrigin(xrayPlaneCenter);
+  xrayPlane->SetNormal(0, 0, 1);
+
+  // get the region of xray
+  double projectedXrayNodes[4][3];
+  for (int i = 0; i < 4; i++) {
+
+    xrayPlane->ProjectPoint(m_XRayRegionPts[i], projectedXrayNodes[i]);
+    for (int j = 0; j < 3; j++) {
+      qDebug() << projectedXrayNodes[i][j] << " -re1";
+    }
+  }
+  double xraySpacing[3];
+  double xrayOrigion[3];
+
+  m_imageXRay->GetSpacing(xraySpacing);
+  m_imageXRay->GetOrigin(xrayOrigion);
+
+  typedef short PixelType;
+  typedef itk::Image<PixelType, 3> ImageType;
+  typedef itk::ImageRegionConstIterator<ImageType> ConstIteratorType;
+  typedef itk::ImageRegionIterator<ImageType> IteratorType;
+  ImageType::RegionType inputRegion;
+  ImageType::RegionType::IndexType inputStart;
+  ImageType::RegionType::SizeType size;
+
+  int xrayStart[3], xraySize[3];
+
+  ImageType::RegionType::SizeType maxSize;
+  maxSize = xrayimage->GetLargestPossibleRegion().GetSize();
+
+  int minRegionIndex[3], maxRegionIndex[3];
+  for (int i = 0; i < 3; i++) {
+    minRegionIndex[i] =
+        (projectedXrayNodes[3][i] - xrayOrigion[i]) / xraySpacing[i];
+    maxRegionIndex[i] =
+        (projectedXrayNodes[1][i] - xrayOrigion[i]) / xraySpacing[i];
+
+    if (minRegionIndex[i] < 0)
+      minRegionIndex[i] = 0;
+    if (minRegionIndex[i] > maxSize[i])
+      minRegionIndex[i] = maxSize[i];
+
+    if (maxRegionIndex[i] < 0)
+      maxRegionIndex[i] = 0;
+    if (maxRegionIndex[i] > maxSize[i])
+      maxRegionIndex[i] = maxSize[i];
+
+    xrayStart[i] = minRegionIndex[i];
+    xraySize[i] = maxRegionIndex[i] - minRegionIndex[i];
+  }
+
+  for (int i = 0; i < 3; i++) {
+    inputStart[i] = xrayStart[i];
+    size[i] = xraySize[i];
+    qDebug() << size[i] << " " << inputStart[i] << " " << xraySpacing[i];
+  }
+  size[2] = 1;
+  inputRegion.SetSize(size);
+  inputRegion.SetIndex(inputStart);
+
+  ImageType::RegionType outputRegion;
+  ImageType::RegionType::IndexType outputStart;
+  outputStart[0] = 0;
+  outputStart[1] = 0;
+  outputStart[2] = 0;
+  outputRegion.SetSize(size);
+  outputRegion.SetIndex(outputStart);
+
+  ImageType::Pointer outputImage = ImageType::New();
+  outputImage->SetRegions(outputRegion);
+
+  double outputOrgion[3];
+  for (int i = 0; i < 3; i++) {
+    outputOrgion[i] = xrayStart[i] * xraySpacing[i] + xrayOrigion[i];
+  }
+  outputImage->SetSpacing(xraySpacing);
+  outputImage->SetOrigin(outputOrgion);
+  outputImage->Allocate();
+  ConstIteratorType inputIt(xrayimage, inputRegion);
+  IteratorType outputIt(outputImage, outputRegion);
+  inputIt.GoToBegin();
+  outputIt.GoToBegin();
+
+  while (!inputIt.IsAtEnd()) {
+    outputIt.Set(inputIt.Get());
+    ++inputIt;
+    ++outputIt;
+  }
+
+  auto tovtk = itk::ImageToVTKImageFilter<ImageType>::New();
+  tovtk->SetInput(outputImage);
+  tovtk->Update();
+  qDebug() << "xray region";
+  auto imagedata = vtkSmartPointer<vtkImageData>::New();
+  imagedata->DeepCopy(tovtk->GetOutput());
+  double scalarRange[2];
+  imagedata->GetScalarRange(scalarRange);
+
+  m_xrayIn3D->GetMapper()->SetInputData(imagedata);
+  m_xrayIn3D->SetInputData(imagedata);
+  m_xrayIn3D->GetProperty()->SetColorLevel(
+      (scalarRange[1] - scalarRange[0]) / 2 + scalarRange[0]);
+  m_xrayIn3D->GetProperty()->SetColorWindow(scalarRange[1] - scalarRange[0]);
+  if (!m_Render3D->GetViewProps()->IsItemPresent(m_xrayIn3D))
+    m_Render3D->AddActor(m_xrayIn3D);
+  m_Render3D->GetRenderWindow()->Render();
+}
+
+void MainWindow::ExtractCTRegion() {
+
+  // generate origion xray
+  const unsigned int Dimension = 3;
+  typedef short InputPixelType;
+  typedef short OutputPixleType;
+  typedef itk::Image<InputPixelType, Dimension> InputImageType;
+
+  typedef itk::VTKImageToImageFilter<InputImageType> VTKImageToImageType;
+  VTKImageToImageType::Pointer m_ctfromvtk = VTKImageToImageType::New();
+  m_ctfromvtk->SetInput(m_imageVolume);
+  m_ctfromvtk->Update();
+
+  typedef unsigned char OutputPixelType;
+
+  typedef itk::Image<InputPixelType, Dimension> InputImageType;
+  typedef itk::Image<OutputPixelType, Dimension> OutputImageType;
+
+  InputImageType::Pointer ctimage;
+  ctimage = m_ctfromvtk->GetOutput();
+
+  // get the region of ct
+
+  double ctSpacing[3];
+  double ctOrigion[3];
+
+  m_imageVolume->GetSpacing(ctSpacing);
+  m_imageVolume->GetOrigin(ctOrigion);
+
+  typedef short PixelType;
+  typedef itk::Image<PixelType, 3> ImageType;
+  typedef itk::ImageRegionConstIterator<ImageType> ConstIteratorType;
+  typedef itk::ImageRegionIterator<ImageType> IteratorType;
+  ImageType::RegionType inputRegion;
+  ImageType::RegionType::IndexType inputStart;
+  ImageType::RegionType::SizeType size;
+
+  int ctStart[3], ctSize[3];
+  int minusSize[3] = {0, 0, 0};
+  ImageType::RegionType::SizeType maxSize;
+  maxSize = ctimage->GetLargestPossibleRegion().GetSize();
+  int minRegionIndex[3], maxRegionIndex[3];
+  for (int i = 0; i < 3; i++) {
+    minRegionIndex[i] = (m_CTRegionPts[4][i] - ctOrigion[i]) / ctSpacing[i];
+    maxRegionIndex[i] = (m_CTRegionPts[2][i] - ctOrigion[i]) / ctSpacing[i];
+
+    if (minRegionIndex[i] < 0)
+      minRegionIndex[i] = 0;
+    if (minRegionIndex[i] > maxSize[i])
+      minRegionIndex[i] = maxSize[i];
+
+    if (maxRegionIndex[i] < 0)
+      maxRegionIndex[i] = 0;
+    if (maxRegionIndex[i] > maxSize[i])
+      maxRegionIndex[i] = maxSize[i];
+
+    ctStart[i] = minRegionIndex[i];
+    ctSize[i] = maxRegionIndex[i] - minRegionIndex[i];
+  }
+
+  for (int i = 0; i < 3; i++) {
+    inputStart[i] = ctStart[i];
+    size[i] = ctSize[i];
+    qDebug() << size[i] << " " << inputStart[i] << " " << ctSpacing[i];
+  }
+
+  inputRegion.SetSize(size);
+  inputRegion.SetIndex(inputStart);
+
+  ImageType::RegionType outputRegion;
+  ImageType::RegionType::IndexType outputStart;
+  outputStart[0] = 0;
+  outputStart[1] = 0;
+  outputStart[2] = 0;
+  outputRegion.SetSize(size);
+  outputRegion.SetIndex(outputStart);
+
+  ImageType::Pointer outputImage = ImageType::New();
+  outputImage->SetRegions(outputRegion);
+
+  double outputOrgion[3];
+  for (int i = 0; i < 3; i++) {
+    outputOrgion[i] = ctStart[i] * ctSpacing[i] + ctOrigion[i];
+  }
+  outputImage->SetSpacing(ctSpacing);
+  outputImage->SetOrigin(outputOrgion);
+  outputImage->Allocate();
+  ConstIteratorType inputIt(ctimage, inputRegion);
+  IteratorType outputIt(outputImage, outputRegion);
+  inputIt.GoToBegin();
+  outputIt.GoToBegin();
+
+  while (!inputIt.IsAtEnd()) {
+    outputIt.Set(inputIt.Get());
+    ++inputIt;
+    ++outputIt;
+  }
+
+  auto tovtk = itk::ImageToVTKImageFilter<ImageType>::New();
+  tovtk->SetInput(outputImage);
+  tovtk->Update();
+  qDebug() << "xray region";
+  auto imagedata = vtkSmartPointer<vtkImageData>::New();
+  imagedata->DeepCopy(tovtk->GetOutput());
+
+  auto colortransformFunction =
+      vtkSmartPointer<vtkColorTransferFunction>::New();
+  colortransformFunction->AddRGBPoint(0.0, 0, 0.0, 0.0);
+  colortransformFunction->AddRGBPoint(200.0, 1, 0.2, 0.6);
+  colortransformFunction->AddRGBPoint(1024, 0, 0, 0);
+  auto opacityFunction = vtkSmartPointer<vtkPiecewiseFunction>::New();
+  opacityFunction->AddPoint(-3096, 0);
+  opacityFunction->AddPoint(200, 1);
+  opacityFunction->AddPoint(1024, 1);
+
+  auto volumeProperty = vtkSmartPointer<vtkVolumeProperty>::New();
+  volumeProperty->SetColor(colortransformFunction);
+  volumeProperty->SetScalarOpacity(opacityFunction);
+  volumeProperty->ShadeOn();
+  volumeProperty->SetInterpolationTypeToLinear();
+
+  auto volumeMapper = vtkSmartPointer<vtkOpenGLGPUVolumeRayCastMapper>::New();
+  volumeMapper->SetInputData(imagedata);
+  volumeMapper->SetSampleDistance(0.5);
+  volumeMapper->SetAutoAdjustSampleDistances(1);
+  volumeMapper->SetBlendModeToComposite();
+
+  m_CTRegionVolume->SetMapper(volumeMapper);
+  m_CTRegionVolume->SetProperty(volumeProperty);
+
+  if (!m_Render3D->GetVolumes()->IsItemPresent(m_CTRegionVolume))
+    m_Render3D->AddVolume(m_CTRegionVolume);
+
+  m_Render3D->GetRenderWindow()->Render();
+}
+
 void MainWindow::OnDICOMBrowser() { m_dicomBrowser->show(); }
 
 void MainWindow::OnImportVolume(int index) {
@@ -1154,6 +1436,14 @@ void MainWindow::OnSurceWidgetInteraction() {
 }
 
 void MainWindow::OnGenerateDRR() {}
+
+void MainWindow::OnCTVolumeVisibility() {
+  if (m_volumeActor->GetVisibility())
+    m_volumeActor->VisibilityOff();
+  else
+    m_volumeActor->VisibilityOn();
+  m_Render3D->GetRenderWindow()->Render();
+}
 
 void MainWindow::OnFemoralCenterButton() {
   if (ui->FemoralCenterButton->isChecked()) {
@@ -2336,4 +2626,31 @@ void MainWindow::OnCTRegionChanged() {
   m_Render3D->GetRenderWindow()->Render();
   ui->CTRegionButton->setChecked(false);
   this->OnCTRegionButton();
+}
+
+void MainWindow::OnXrayIn3DVisibilityButton() {
+  if (m_xrayIn3D->GetVisibility())
+    m_xrayIn3D->VisibilityOff();
+  else
+    m_xrayIn3D->VisibilityOn();
+  m_Render3D->GetRenderWindow()->Render();
+}
+
+void MainWindow::OnCTRegionVisibilityButton() {
+  if (m_CTRegionVolume->GetVisibility())
+    m_CTRegionVolume->VisibilityOff();
+  else
+    m_CTRegionVolume->VisibilityOn();
+  m_Render3D->GetRenderWindow()->Render();
+}
+
+void MainWindow::OnStartRegestration() {
+  // check
+  if (m_fixCTActor->GetMapper()->GetInput()->GetNumberOfPoints() == 0)
+    return;
+  if (m_fixXrayActor->GetMapper()->GetInput()->GetNumberOfPoints() == 0)
+    return;
+  this->ExtractXRayRegion();
+
+  this->ExtractCTRegion();
 }

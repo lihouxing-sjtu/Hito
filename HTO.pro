@@ -29,13 +29,33 @@ SOURCES += \
         main.cpp \
         MainWindow.cpp \
     DICOMBrowser.cpp \
-    DICOMItem.cpp
+    DICOMItem.cpp \
+    itkGradientDifferenceSingleImageToImageMetric.txx \
+    itkMultiImageToImageMetric.txx \
+    itkMultiImageToImageRegistrationMethod.txx \
+    itkMultiResolutionMultiImageToImageRegistrationMethod.txx \
+    itkNormalizedGradientCorrelationImageToImageMetric.txx \
+    itkPatchedRayCastInterpolateImageFunction.txx \
+    itkPatternIntensityImageToImageMetric.txx \
+    itkPatternIntensityMultiImageToImageMetric.txx
 
 HEADERS += \
         MainWindow.h \
     stdafx.h \
     DICOMBrowser.h \
-    DICOMItem.h
+    DICOMItem.h \
+    itkGradientDifferenceMultiImageToImageMetric.h \
+    itkGradientDifferenceSingleImageToImageMetric.h \
+    itkMeanSquaresMultiImageToImageMetric.h \
+    itkMultiImageRegistrationMacro.h \
+    itkMultiImageToImageMetric.h \
+    itkMultiImageToImageRegistrationMethod.h \
+    itkMultiResolutionMultiImageToImageRegistrationMethod.h \
+    itkNormalizedGradientCorrelationImageToImageMetric.h \
+    itkNormalizedGradientCorrelationMultiImageToImageMetric.h \
+    itkPatchedRayCastInterpolateImageFunction.h \
+    itkPatternIntensityImageToImageMetric.h \
+    itkPatternIntensityMultiImageToImageMetric.h
 
 FORMS += \
         MainWindow.ui \

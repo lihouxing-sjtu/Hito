@@ -119,6 +119,7 @@ private:
   double m_CTRegionFixCenter[3];
   double m_CTLength;
 
+  vtkSmartPointer<vtkImageActor> m_xrayIn3D;
   vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP1;
   vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP2;
   vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetP3;
@@ -130,6 +131,7 @@ private:
   vtkSmartPointer<vtkSphereWidget> m_CTRegionWidgetOrigion;
   QList<vtkSmartPointer<vtkSphereWidget>> m_CTSphereList;
   double m_CTRegionPts[9][3];
+  vtkSmartPointer<vtkVolume> m_CTRegionVolume;
 
 protected:
   virtual void closeEvent(QCloseEvent *event);
@@ -153,6 +155,9 @@ protected:
                        vtkPolyData *out);
   void BuildBox(double p1[], double p2[], double p3[], double p4[], double p5[],
                 double p6[], double p7[], double p8[], vtkPolyData *out);
+
+  void ExtractXRayRegion();
+  void ExtractCTRegion();
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
@@ -163,6 +168,7 @@ protected slots:
   void OnSurceWidgetInteraction();
   void OnGenerateDRR();
 
+  void OnCTVolumeVisibility();
   // for femoral
   void OnFemoralCenterButton();
   void OnFemoralMove();
@@ -199,6 +205,11 @@ protected slots:
   void OnCTRegionMove();
   void OnCTRegionSet();
   void OnCTRegionChanged();
+
+  // for regestration
+  void OnXrayIn3DVisibilityButton();
+  void OnCTRegionVisibilityButton();
+  void OnStartRegestration();
 };
 
 #endif // MAINWINDOW_H
