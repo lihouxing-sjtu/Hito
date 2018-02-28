@@ -133,6 +133,12 @@ private:
   double m_CTRegionPts[9][3];
   vtkSmartPointer<vtkVolume> m_CTRegionVolume;
 
+  typedef short PixelType;
+  typedef itk::Image<PixelType, 3> ImageType;
+  ImageType::Pointer m_ExtractedCTImage;
+
+  vtkSmartPointer<vtkSphereWidget> m_CTRemoveWidget;
+
 protected:
   virtual void closeEvent(QCloseEvent *event);
   void SetUpSphereWidet();
@@ -158,6 +164,7 @@ protected:
 
   void ExtractXRayRegion();
   void ExtractCTRegion();
+  void VisualizeSelectedCTRegion();
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
@@ -209,6 +216,8 @@ protected slots:
   // for regestration
   void OnXrayIn3DVisibilityButton();
   void OnCTRegionVisibilityButton();
+  void OnRemoveCTNoiseButton();
+  void OnRemoveCTNoiseSet();
   void OnStartRegestration();
 };
 

@@ -157,6 +157,8 @@ MainWindow::MainWindow(QWidget *parent)
   m_xrayIn3D = vtkSmartPointer<vtkImageActor>::New();
   m_CTRegionVolume = vtkSmartPointer<vtkVolume>::New();
 
+  m_ExtractedCTImage = ImageType::New();
+
   m_CTLength = 100;
 
   this->SetUpSphereWidet();
@@ -202,6 +204,8 @@ MainWindow::MainWindow(QWidget *parent)
           SLOT(OnCTVolumeVisibility()));
   connect(ui->CTRegionVolumeVisibilityButton, SIGNAL(clicked(bool)), this,
           SLOT(OnCTRegionVisibilityButton()));
+  connect(ui->RemoveCTNoiseButton, SIGNAL(clicked(bool)), this,
+          SLOT(OnRemoveCTNoiseButton()));
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -343,6 +347,12 @@ void MainWindow::SetUpSphereWidet() {
     m_vtkqtConnector->Connect(var, vtkCommand::InteractionEvent, this,
                               SLOT(OnCTRegionChanged()));
   }
+
+  // for ct remove noise
+  m_CTRemoveWidget = vtkSmartPointer<vtkSphereWidget>::New();
+  m_CTRemoveWidget->SetInteractor(m_Interactor3D);
+  m_CTRemoveWidget->SetRepresentationToSurface();
+  m_CTRemoveWidget->GetSphereProperty()->SetColor(0, 1, 0);
 }
 
 void MainWindow::SetUpOrientationWidget() {
@@ -1278,8 +1288,13 @@ void MainWindow::ExtractCTRegion() {
     ++outputIt;
   }
 
+  m_ExtractedCTImage = outputImage;
+  this->VisualizeSelectedCTRegion();
+}
+
+void MainWindow::VisualizeSelectedCTRegion() {
   auto tovtk = itk::ImageToVTKImageFilter<ImageType>::New();
-  tovtk->SetInput(outputImage);
+  tovtk->SetInput(m_ExtractedCTImage);
   tovtk->Update();
   qDebug() << "xray region";
   auto imagedata = vtkSmartPointer<vtkImageData>::New();
@@ -1287,13 +1302,19 @@ void MainWindow::ExtractCTRegion() {
 
   auto colortransformFunction =
       vtkSmartPointer<vtkColorTransferFunction>::New();
-  colortransformFunction->AddRGBPoint(0.0, 0, 0.0, 0.0);
+  colortransformFunction->AddRGBPoint(-3096, 0, 0.0, 0.0);
+  colortransformFunction->AddRGBPoint(199, 0, 0, 0);
   colortransformFunction->AddRGBPoint(200.0, 1, 0.2, 0.6);
+  colortransformFunction->AddRGBPoint(500, 1, 0.2, 0.6);
+  colortransformFunction->AddRGBPoint(501, 0, 0, 0);
   colortransformFunction->AddRGBPoint(1024, 0, 0, 0);
   auto opacityFunction = vtkSmartPointer<vtkPiecewiseFunction>::New();
   opacityFunction->AddPoint(-3096, 0);
+  opacityFunction->AddPoint(199, 0);
   opacityFunction->AddPoint(200, 1);
-  opacityFunction->AddPoint(1024, 1);
+  opacityFunction->AddPoint(500, 1);
+  opacityFunction->AddPoint(501, 0);
+  opacityFunction->AddPoint(1024, 0);
 
   auto volumeProperty = vtkSmartPointer<vtkVolumeProperty>::New();
   volumeProperty->SetColor(colortransformFunction);
@@ -2644,6 +2665,103 @@ void MainWindow::OnCTRegionVisibilityButton() {
   m_Render3D->GetRenderWindow()->Render();
 }
 
+void MainWindow::OnRemoveCTNoiseButton() {
+  if (ui->RemoveCTNoiseButton->isChecked()) {
+    ui->XRayRegionButton->setDisabled(true);
+    ui->CTRegionButton->setDisabled(true);
+    this->setCursor(Qt::CrossCursor);
+    m_vtkqtConnector->Connect(m_Interactor3D, vtkCommand::RightButtonPressEvent,
+                              this, SLOT(OnRemoveCTNoiseSet()));
+  } else {
+    ui->XRayRegionButton->setDisabled(false);
+    ui->CTRegionButton->setDisabled(false);
+    this->setCursor(Qt::ArrowCursor);
+    m_vtkqtConnector->Disconnect(m_Interactor3D,
+                                 vtkCommand::RightButtonPressEvent, this,
+                                 SLOT(OnRemoveCTNoiseSet()));
+  }
+}
+
+void MainWindow::OnRemoveCTNoiseSet() {
+  ui->Widget3D->setFocus();
+  QPoint mouse = ui->Widget3D->mapFromGlobal(QCursor::pos());
+
+  int x = mouse.x();
+  int y = ui->Widget3D->height() - mouse.y();
+
+  qDebug() << "move:" << x << " " << y;
+  double worldpos[4];
+
+  vtkInteractorObserver::ComputeDisplayToWorld(m_Render3D, x, y, 0, worldpos);
+
+  ui->RemoveCTNoiseButton->setChecked(false);
+  this->OnRemoveCTNoiseButton();
+  auto volumePicker = vtkSmartPointer<vtkVolumePicker>::New();
+  volumePicker->AddPickList(m_CTRegionVolume);
+  volumePicker->PickFromListOn();
+
+  volumePicker->SetVolumeOpacityIsovalue(1);
+  volumePicker->Pick(x, y, 0, m_Render3D);
+
+  volumePicker->GetPickPosition(worldpos);
+  m_CTRemoveWidget->SetRadius(12);
+  m_CTRemoveWidget->SetCenter(worldpos[0], worldpos[1], worldpos[2]);
+  m_CTRemoveWidget->On();
+  // calculate the selected point index
+  ImageType::RegionType::SizeType regionsize;
+  regionsize = m_ExtractedCTImage->GetLargestPossibleRegion().GetSize();
+  ImageType::SpacingType ctspacing;
+  ctspacing = m_ExtractedCTImage->GetSpacing();
+  ImageType::PointType ctorigion;
+  ctorigion = m_ExtractedCTImage->GetOrigin();
+
+  ImageType::IndexType selectedIndex;
+  for (int i = 0; i < 3; i++) {
+    selectedIndex[i] = (worldpos[i] - ctorigion[i]) / ctspacing[i];
+    if ((selectedIndex[i] < 0) || (selectedIndex[i] > regionsize[i])) {
+      return; // if out the range,return}
+    }
+  }
+
+  // use connect threshold to extract target region
+  ImageType::RegionType largetestRegion;
+  largetestRegion = m_ExtractedCTImage->GetLargestPossibleRegion();
+
+  ImageType::Pointer backupImage = ImageType::New();
+  //  backupImage->SetRegions(largetestRegion);
+  //  backupImage->Allocate();
+
+  typedef itk::ConnectedThresholdImageFilter<ImageType, ImageType>
+      ConnectedFillterType;
+  ConnectedFillterType::Pointer connectedThreshold =
+      ConnectedFillterType::New();
+  connectedThreshold->SetInput(m_ExtractedCTImage);
+  connectedThreshold->SetLower(190);
+  connectedThreshold->SetUpper(510);
+  connectedThreshold->SetReplaceValue(-4000);
+  connectedThreshold->SetSeed(selectedIndex);
+  connectedThreshold->SetCoordinateTolerance(1);
+  connectedThreshold->Update();
+
+  backupImage = connectedThreshold->GetOutput();
+
+  itk::ImageRegionIterator<ImageType> origionIterator(m_ExtractedCTImage,
+                                                      largetestRegion);
+  itk::ImageRegionConstIterator<ImageType> backupIterator(backupImage,
+                                                          largetestRegion);
+  origionIterator.GoToBegin();
+  backupIterator.GoToBegin();
+
+  while (!origionIterator.IsAtEnd()) {
+    if (backupIterator.Get() == -4000) {
+      origionIterator.Set(0);
+    }
+    ++backupIterator;
+    ++origionIterator;
+  }
+  this->VisualizeSelectedCTRegion();
+}
+
 void MainWindow::OnStartRegestration() {
   // check
   if (m_fixCTActor->GetMapper()->GetInput()->GetNumberOfPoints() == 0)
@@ -2651,6 +2769,5 @@ void MainWindow::OnStartRegestration() {
   if (m_fixXrayActor->GetMapper()->GetInput()->GetNumberOfPoints() == 0)
     return;
   this->ExtractXRayRegion();
-
   this->ExtractCTRegion();
 }

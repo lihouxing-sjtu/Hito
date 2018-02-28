@@ -55,10 +55,12 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkTransform.h>
 #include <vtkVectorText.h>
 #include <vtkVolume.h>
+#include <vtkVolumePicker.h>
 #include <vtkVolumeProperty.h>
 #include <vtkWorldPointPicker.h>
 // itk include
 #include <itkCenteredEuler3DTransform.h>
+#include <itkConnectedThresholdImageFilter.h>
 #include <itkGDCMImageIO.h>
 #include <itkGDCMSeriesFileNames.h>
 #include <itkImageRegionIterator.h>
