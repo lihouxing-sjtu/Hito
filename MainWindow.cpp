@@ -158,6 +158,7 @@ MainWindow::MainWindow(QWidget *parent)
   m_CTRegionVolume = vtkSmartPointer<vtkVolume>::New();
 
   m_ExtractedCTImage = ImageType::New();
+  m_ExtractedXRayImage = ImageType::New();
 
   m_CTLength = 100;
 
@@ -1060,8 +1061,8 @@ void MainWindow::BuildBox(double p1[], double p2[], double p3[], double p4[],
 void MainWindow::ExtractXRayRegion() {
   // generate origion xray
   const unsigned int Dimension = 3;
-  typedef short InputPixelType;
-  typedef short OutputPixleType;
+  typedef double InputPixelType;
+  typedef double OutputPixleType;
   typedef itk::Image<InputPixelType, Dimension> InputImageType;
 
   typedef itk::VTKImageToImageFilter<InputImageType> VTKImageToImageType;
@@ -1069,7 +1070,7 @@ void MainWindow::ExtractXRayRegion() {
   m_xrayfromvtk->SetInput(m_imageXRay);
   m_xrayfromvtk->Update();
 
-  typedef unsigned char OutputPixelType;
+  typedef double OutputPixelType;
 
   typedef itk::Image<InputPixelType, Dimension> InputImageType;
   typedef itk::Image<OutputPixelType, Dimension> OutputImageType;
@@ -1099,7 +1100,7 @@ void MainWindow::ExtractXRayRegion() {
   m_imageXRay->GetSpacing(xraySpacing);
   m_imageXRay->GetOrigin(xrayOrigion);
 
-  typedef short PixelType;
+  typedef double PixelType;
   typedef itk::Image<PixelType, 3> ImageType;
   typedef itk::ImageRegionConstIterator<ImageType> ConstIteratorType;
   typedef itk::ImageRegionIterator<ImageType> IteratorType;
@@ -1170,9 +1171,9 @@ void MainWindow::ExtractXRayRegion() {
     ++inputIt;
     ++outputIt;
   }
-
+  m_ExtractedXRayImage = outputImage;
   auto tovtk = itk::ImageToVTKImageFilter<ImageType>::New();
-  tovtk->SetInput(outputImage);
+  tovtk->SetInput(m_ExtractedXRayImage);
   tovtk->Update();
   qDebug() << "xray region";
   auto imagedata = vtkSmartPointer<vtkImageData>::New();
@@ -1194,8 +1195,8 @@ void MainWindow::ExtractCTRegion() {
 
   // generate origion xray
   const unsigned int Dimension = 3;
-  typedef short InputPixelType;
-  typedef short OutputPixleType;
+  typedef double InputPixelType;
+  typedef double OutputPixleType;
   typedef itk::Image<InputPixelType, Dimension> InputImageType;
 
   typedef itk::VTKImageToImageFilter<InputImageType> VTKImageToImageType;
@@ -1219,7 +1220,7 @@ void MainWindow::ExtractCTRegion() {
   m_imageVolume->GetSpacing(ctSpacing);
   m_imageVolume->GetOrigin(ctOrigion);
 
-  typedef short PixelType;
+  typedef double PixelType;
   typedef itk::Image<PixelType, 3> ImageType;
   typedef itk::ImageRegionConstIterator<ImageType> ConstIteratorType;
   typedef itk::ImageRegionIterator<ImageType> IteratorType;
@@ -2770,4 +2771,178 @@ void MainWindow::OnStartRegestration() {
     return;
   this->ExtractXRayRegion();
   this->ExtractCTRegion();
+  //  typedef itk::Image<double, 3> ImageType;
+
+  //  typedef itk::Euler3DTransform<double> TransformType;
+  //  typedef itk::ImageRegistrationMethodv4<ImageType, ImageType,
+  //  TransformType>
+  //      RegistrationType;
+
+  //  typedef itk::MeanSquaresImageToImageMetricv4<ImageType, ImageType>
+  //  MetricType;
+  //  typedef itk::RegularStepGradientDescentOptimizerv4<double> OptimizerType;
+
+  //  typedef itk::LinearInterpolateImageFunction<ImageType, double>
+  //      FixedInterpolatorType;
+  //  typedef itk::RayCastInterpolateImageFunction<ImageType, double>
+  //      MovingInterpolatorType;
+
+  //  RegistrationType::Pointer registration = RegistrationType::New();
+  //  TransformType::Pointer transform = TransformType::New();
+  //  OptimizerType::Pointer optimizer = OptimizerType::New();
+  //  MetricType::Pointer metric = MetricType::New();
+  //  FixedInterpolatorType::Pointer fixedInterpolator =
+  //      FixedInterpolatorType::New();
+  //  MovingInterpolatorType::Pointer movingInterpolator =
+  //      MovingInterpolatorType::New();
+
+  //  ImageType::PointType origion = m_ExtractedCTImage->GetOrigin();
+  //  ImageType::SpacingType spacing = m_ExtractedCTImage->GetSpacing();
+  //  ImageType::RegionType::SizeType size =
+  //      m_ExtractedCTImage->GetLargestPossibleRegion().GetSize();
+
+  //  MovingInterpolatorType::InputPointType movingFocalPoint;
+  //  movingFocalPoint[0] = origion[0] + 200;
+  //  movingFocalPoint[1] = origion[1] + size[1] / 2 * spacing[1];
+  //  movingFocalPoint[2] = origion[2] + size[2] / 2 * spacing[2];
+
+  //  movingInterpolator->SetFocalPoint(movingFocalPoint);
+  //  movingInterpolator->SetThreshold(0);
+  //  metric->SetFixedInterpolator(fixedInterpolator);
+  //  metric->SetMovingInterpolator(movingInterpolator);
+
+  //  registration->SetMetric(metric);
+  //  registration->SetFixedImage(m_ExtractedXRayImage);
+  //  registration->SetMovingImage(m_ExtractedCTImage);
+
+  //  optimizer->SetLearningRate(0.2);
+  //  optimizer->SetMinimumStepLength(0.001);
+  //  optimizer->SetRelaxationFactor(0.5);
+  //  optimizer->SetNumberOfIterations(200);
+  //  optimizer->SetReturnBestParametersAndValue(true);
+
+  //  registration->SetOptimizer(optimizer);
+  //  try {
+  //    registration->Update();
+  //  } catch (itk::ExceptionObject &e) {
+  //    std::cout << e.GetDescription() << std::endl;
+  //    return;
+  //  }
+
+  // define registration type
+  typedef itk::MultiResolutionMultiImageToImageRegistrationMethod<ImageType,
+                                                                  ImageType>
+      RegistrationType;
+  RegistrationType::Pointer registration = RegistrationType::New();
+
+  // define transform
+  typedef itk::Euler3DTransform<double> TransformType;
+  TransformType::Pointer transfom = TransformType::New();
+  transfom->SetIdentity();
+  registration->SetTransform(transfom);
+
+  // input moving image
+  registration->SetMovingImage(m_ExtractedCTImage);
+  typedef itk::MultiResolutionPyramidImageFilter<ImageType, ImageType>
+      MovingImagePyramidType;
+  MovingImagePyramidType::Pointer movingPyramidFilter =
+      MovingImagePyramidType::New();
+  registration->SetMovingImagePyramid(movingPyramidFilter);
+
+  // input fix image
+  ImageType::PointType origion;
+  origion = m_ExtractedCTImage->GetOrigin();
+
+  ImageType::PointType spacing;
+  spacing = m_ExtractedCTImage->GetSpacing();
+
+  ImageType::RegionType::SizeType largeSize;
+  largeSize = m_ExtractedCTImage->GetLargestPossibleRegion().GetSize();
+
+  typedef itk::RayCastInterpolateImageFunction<ImageType, double>
+      InterpolatorType;
+  InterpolatorType::InputPointType focalPoint;
+  // typedef InterpolatorType::InputPointType FocalPointType;
+  typedef itk::MultiResolutionPyramidImageFilter<ImageType, ImageType>
+      FixedImagePyramidType;
+  registration->AddFixedImage(m_ExtractedXRayImage);
+  InterpolatorType::Pointer interpolator = InterpolatorType::New();
+  //  // FocalPointType focalPoint;
+  focalPoint[0] = origion[0] + spacing[0] * largeSize[0] / 2.0;
+  focalPoint[1] = origion[1] + spacing[1] * largeSize[1] / 2.0;
+  focalPoint[2] = origion[2] + 200;
+  interpolator->SetFocalPoint(focalPoint);
+  interpolator->SetTransform(transfom);
+  interpolator->SetThreshold(0.0);
+  registration->AddInterpolator(interpolator);
+
+  FixedImagePyramidType::Pointer fixedPyramidFilter =
+      FixedImagePyramidType::New();
+  registration->AddFixedImagePyramid(fixedPyramidFilter);
+
+  // define metric
+  typedef itk::NormalizedGradientCorrelationMultiImageToImageMetric<ImageType,
+                                                                    ImageType>
+      MultiMetricType;
+  MultiMetricType::Pointer multiMetric = MultiMetricType::New();
+  registration->SetMultiMetric(multiMetric);
+
+  // define optimizer
+  typedef itk::FRPROptimizer OptimizerType;
+  OptimizerType::Pointer optimizer = OptimizerType::New();
+
+  unsigned int parTotal = transfom->GetNumberOfParameters();
+  OptimizerType::ScalesType scales(parTotal);
+  scales.Fill(itk::NumericTraits<OptimizerType::ScalesType::ValueType>::One);
+  scales[0] = 25.0;
+  scales[1] = 25.0;
+  scales[2] = 25.0;
+
+  optimizer->SetScales(scales);
+  optimizer->SetMaximize(true);
+  optimizer->SetMaximumIteration(100);
+  optimizer->SetMaximumLineIteration(10);
+  optimizer->SetValueTolerance(1e-3);
+  optimizer->SetUseUnitLengthGradient(true);
+  optimizer->SetToPolakRibiere();
+  optimizer->SetCatchGetValueException(true);
+  optimizer->SetMetricWorstPossibleValue(
+      -itk::NumericTraits<MultiMetricType::MeasureType>::infinity());
+
+  optimizer->SetStepTolerance(0.08);
+  optimizer->SetStepLength(8.0);
+  registration->SetOptimizer(optimizer);
+
+  // define schedules
+  const unsigned int ResolutionLevels = 3;
+  RegistrationType::ScheduleType fixedSchedule(ResolutionLevels, 3);
+  fixedSchedule[0][0] = 4;
+  fixedSchedule[0][1] = 4;
+  fixedSchedule[0][2] = 1;
+  fixedSchedule[1][0] = 2;
+  fixedSchedule[1][1] = 2;
+  fixedSchedule[1][2] = 1;
+  fixedSchedule[2][0] = 1;
+  fixedSchedule[2][1] = 1;
+  fixedSchedule[2][2] = 1;
+
+  RegistrationType::ScheduleType movingSchedule(ResolutionLevels, 3);
+  movingSchedule[0][0] = 4;
+  movingSchedule[0][1] = 4;
+  movingSchedule[0][2] = 4;
+  movingSchedule[1][0] = 2;
+  movingSchedule[1][1] = 2;
+  movingSchedule[1][2] = 2;
+  movingSchedule[2][0] = 1;
+  movingSchedule[2][1] = 1;
+  movingSchedule[2][2] = 1;
+
+  registration->SetSchedules(fixedSchedule, movingSchedule);
+  registration->SetInitialTransformParameters(transfom->GetParameters());
+  try {
+    registration->Update();
+  } catch (itk::ExceptionObject &e) {
+    std::cout << e.GetDescription() << std::endl;
+    return;
+  }
 }

@@ -6,7 +6,7 @@ DICOMItem::DICOMItem(QObject *parent, std::vector<std::string> path)
   m_path = path;
   m_imgData = vtkSmartPointer<vtkImageData>::New();
 
-  typedef itk::Image<short, 3> ImageShortType;
+  typedef itk::Image<double, 3> ImageShortType;
   auto gdcmIO = itk::GDCMImageIO::New();
   auto reader = itk::ImageSeriesReader<ImageShortType>::New();
   reader->SetImageIO(gdcmIO);

@@ -133,10 +133,10 @@ private:
   double m_CTRegionPts[9][3];
   vtkSmartPointer<vtkVolume> m_CTRegionVolume;
 
-  typedef short PixelType;
+  typedef double PixelType;
   typedef itk::Image<PixelType, 3> ImageType;
   ImageType::Pointer m_ExtractedCTImage;
-
+  ImageType::Pointer m_ExtractedXRayImage;
   vtkSmartPointer<vtkSphereWidget> m_CTRemoveWidget;
 
 protected:

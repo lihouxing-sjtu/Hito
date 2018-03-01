@@ -59,14 +59,26 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkVolumeProperty.h>
 #include <vtkWorldPointPicker.h>
 // itk include
+#include "itkFRPROptimizer.h"
+#include "itkMultiResolutionMultiImageToImageRegistrationMethod.h"
+#include "itkNormalizedGradientCorrelationMultiImageToImageMetric.h"
+#include "itkPatchedRayCastInterpolateImageFunction.h"
 #include <itkCenteredEuler3DTransform.h>
 #include <itkConnectedThresholdImageFilter.h>
+#include <itkEuler3DTransform.h>
 #include <itkGDCMImageIO.h>
 #include <itkGDCMSeriesFileNames.h>
 #include <itkImageRegionIterator.h>
+#include <itkImageRegistrationMethodv4.h>
 #include <itkImageSeriesReader.h>
 #include <itkImageToVTKImageFilter.h>
+#include <itkLinearInterpolateImageFunction.h>
+#include <itkMeanSquaresImageToImageMetricv4.h>
+#include <itkMultiResolutionPyramidImageFilter.h>
 #include <itkRayCastInterpolateImageFunction.h>
+#include <itkRegularStepGradientDescentOptimizerv4.h>
 #include <itkResampleImageFilter.h>
+#include <itkTranslationTransform.h>
 #include <itkVTKImageToImageFilter.h>
+#include <itkVersorRigid3DTransform.h>
 #endif // STDAFX_H
