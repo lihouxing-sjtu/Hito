@@ -37,7 +37,8 @@ SOURCES += \
     itkNormalizedGradientCorrelationImageToImageMetric.txx \
     itkPatchedRayCastInterpolateImageFunction.txx \
     itkPatternIntensityImageToImageMetric.txx \
-    itkPatternIntensityMultiImageToImageMetric.txx
+    itkPatternIntensityMultiImageToImageMetric.txx \
+    TYLineWidget.cpp
 
 HEADERS += \
         MainWindow.h \
@@ -55,11 +56,13 @@ HEADERS += \
     itkNormalizedGradientCorrelationMultiImageToImageMetric.h \
     itkPatchedRayCastInterpolateImageFunction.h \
     itkPatternIntensityImageToImageMetric.h \
-    itkPatternIntensityMultiImageToImageMetric.h
+    itkPatternIntensityMultiImageToImageMetric.h \
+    TYLineWidget.h
 
 FORMS += \
         MainWindow.ui \
-    DICOMBrowser.ui
+    DICOMBrowser.ui \
+    TYLineWidget.ui
 
 RESOURCES += \
     resource.qrc

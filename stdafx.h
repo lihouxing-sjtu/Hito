@@ -60,6 +60,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkWorldPointPicker.h>
 // itk include
 #include "itkFRPROptimizer.h"
+#include "itkGradientDifferenceMultiImageToImageMetric.h"
 #include "itkMultiResolutionMultiImageToImageRegistrationMethod.h"
 #include "itkNormalizedGradientCorrelationMultiImageToImageMetric.h"
 #include "itkPatchedRayCastInterpolateImageFunction.h"
@@ -68,17 +69,25 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <itkEuler3DTransform.h>
 #include <itkGDCMImageIO.h>
 #include <itkGDCMSeriesFileNames.h>
+#include <itkGradientDifferenceImageToImageMetric.h>
 #include <itkImageRegionIterator.h>
+#include <itkImageRegistrationMethod.h>
 #include <itkImageRegistrationMethodv4.h>
 #include <itkImageSeriesReader.h>
 #include <itkImageToVTKImageFilter.h>
 #include <itkLinearInterpolateImageFunction.h>
+#include <itkMattesMutualInformationImageToImageMetric.h>
 #include <itkMeanSquaresImageToImageMetricv4.h>
+#include <itkMultiResolutionImageRegistrationMethod.h>
 #include <itkMultiResolutionPyramidImageFilter.h>
+#include <itkNormalizedCorrelationImageToImageMetric.h>
+#include <itkPowellOptimizerv4.h>
 #include <itkRayCastInterpolateImageFunction.h>
+#include <itkRegularStepGradientDescentOptimizer.h>
 #include <itkRegularStepGradientDescentOptimizerv4.h>
 #include <itkResampleImageFilter.h>
 #include <itkTranslationTransform.h>
+
 #include <itkVTKImageToImageFilter.h>
 #include <itkVersorRigid3DTransform.h>
 #endif // STDAFX_H

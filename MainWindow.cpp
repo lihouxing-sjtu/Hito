@@ -207,6 +207,11 @@ MainWindow::MainWindow(QWidget *parent)
           SLOT(OnCTRegionVisibilityButton()));
   connect(ui->RemoveCTNoiseButton, SIGNAL(clicked(bool)), this,
           SLOT(OnRemoveCTNoiseButton()));
+
+  double origion[3] = {0, 0, 0};
+  m_lineWidget =
+      new TYLineWidget(0, m_Render2D, m_Interactor2D, origion, 0.5, 200);
+  connect(ui->testButton, SIGNAL(clicked(bool)), this, SLOT(OnTestButton()));
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -354,6 +359,7 @@ void MainWindow::SetUpSphereWidet() {
   m_CTRemoveWidget->SetInteractor(m_Interactor3D);
   m_CTRemoveWidget->SetRepresentationToSurface();
   m_CTRemoveWidget->GetSphereProperty()->SetColor(0, 1, 0);
+  m_CTRemoveWidget->SetRadius(10);
 }
 
 void MainWindow::SetUpOrientationWidget() {
@@ -1336,6 +1342,154 @@ void MainWindow::VisualizeSelectedCTRegion() {
     m_Render3D->AddVolume(m_CTRegionVolume);
 
   m_Render3D->GetRenderWindow()->Render();
+}
+
+void MainWindow::TryRegV4() {
+  typedef itk::Euler3DTransform<double> TransformType;
+  typedef itk::FRPROptimizer OptimizerType;
+  typedef itk::NormalizedGradientCorrelationMultiImageToImageMetric<ImageType,
+                                                                    ImageType>
+      MetricType;
+  typedef itk::RayCastInterpolateImageFunction<ImageType, double>
+      InterpolatorType;
+
+  typedef itk::MultiResolutionMultiImageToImageRegistrationMethod<ImageType,
+                                                                  ImageType>
+      RegistrationType;
+
+  MetricType::Pointer metric = MetricType::New();
+  TransformType::Pointer transform = TransformType::New();
+  OptimizerType::Pointer optimizer = OptimizerType::New();
+  InterpolatorType::Pointer interpolator = InterpolatorType::New();
+  RegistrationType::Pointer registration = RegistrationType::New();
+
+  registration->SetMultiMetric(metric);
+  transform->SetIdentity();
+  unsigned int parTotal = transform->GetNumberOfParameters();
+  OptimizerType::ScalesType scales(parTotal);
+  scales.Fill(itk::NumericTraits<OptimizerType::ScalesType::ValueType>::One);
+  scales[0] = 25.0;
+  scales[1] = 25.0;
+  scales[2] = 25.0;
+
+  optimizer->SetScales(scales);
+  optimizer->SetMaximize(true);
+  optimizer->SetMaximumIteration(200);
+  optimizer->SetMaximumLineIteration(10);
+  optimizer->SetValueTolerance(1e-3);
+  optimizer->SetUseUnitLengthGradient(true);
+  optimizer->SetToPolakRibiere();
+  optimizer->SetCatchGetValueException(true);
+  optimizer->SetMetricWorstPossibleValue(
+      -itk::NumericTraits<MetricType::MeasureType>::infinity());
+
+  optimizer->SetStepTolerance(0.08);
+  optimizer->SetStepLength(8);
+
+  registration->SetOptimizer(optimizer);
+  // define schedules
+  const unsigned int ResolutionLevels = 3;
+  RegistrationType::ScheduleType fixedSchedule(ResolutionLevels, 3);
+  fixedSchedule[0][0] = 4;
+  fixedSchedule[0][1] = 4;
+  fixedSchedule[0][2] = 1;
+  fixedSchedule[1][0] = 2;
+  fixedSchedule[1][1] = 2;
+  fixedSchedule[1][2] = 1;
+  fixedSchedule[2][0] = 1;
+  fixedSchedule[2][1] = 1;
+  fixedSchedule[2][2] = 1;
+
+  RegistrationType::ScheduleType movingSchedule(ResolutionLevels, 3);
+  movingSchedule[0][0] = 4;
+  movingSchedule[0][1] = 4;
+  movingSchedule[0][2] = 4;
+  movingSchedule[1][0] = 2;
+  movingSchedule[1][1] = 2;
+  movingSchedule[1][2] = 2;
+  movingSchedule[2][0] = 1;
+  movingSchedule[2][1] = 1;
+  movingSchedule[2][2] = 1;
+
+  registration->SetSchedules(fixedSchedule, movingSchedule);
+
+  typedef itk::MultiResolutionPyramidImageFilter<ImageType, ImageType>
+      FixedImagePyramidType;
+  FixedImagePyramidType::Pointer fixedPyramidFilter =
+      FixedImagePyramidType::New();
+  registration->AddFixedImage(m_ExtractedXRayImage);
+  registration->AddFixedImagePyramid(fixedPyramidFilter);
+
+  typedef itk::MultiResolutionPyramidImageFilter<ImageType, ImageType>
+      MovingImagePyramidType;
+  MovingImagePyramidType::Pointer movingPyramidFilter =
+      MovingImagePyramidType::New();
+  registration->SetMovingImagePyramid(movingPyramidFilter);
+  registration->SetMovingImage(m_ExtractedCTImage);
+
+  ImageType::PointType origion;
+  origion = m_ExtractedXRayImage->GetOrigin();
+
+  ImageType::PointType spacing;
+  spacing = m_ExtractedXRayImage->GetSpacing();
+
+  ImageType::RegionType::SizeType largeSize;
+  largeSize = m_ExtractedXRayImage->GetLargestPossibleRegion().GetSize();
+
+  InterpolatorType::InputPointType focalPoint;
+  focalPoint[0] = origion[0] + spacing[0] * largeSize[0] / 2.0;
+  focalPoint[1] = origion[1] + spacing[1] * largeSize[1] / 2.0;
+  focalPoint[2] = 200;
+  interpolator->SetFocalPoint(focalPoint);
+  interpolator->SetTransform(transform);
+  interpolator->SetThreshold(0.0);
+
+  ImageType::PointType origionCT;
+  origionCT = m_ExtractedCTImage->GetOrigin();
+  ImageType::PointType spacingCT;
+  spacingCT = m_ExtractedCTImage->GetSpacing();
+  ImageType::SizeType sizeCT;
+  sizeCT = m_ExtractedCTImage->GetLargestPossibleRegion().GetSize();
+
+  registration->AddInterpolator(interpolator);
+  registration->SetTransform(transform);
+  registration->SetInitialTransformParameters(transform->GetParameters());
+
+  try {
+    registration->Update();
+  } catch (itk::ExceptionObject &e) {
+    std::cout << e.GetDescription() << std::endl;
+    return;
+  }
+
+  typedef itk::ResampleImageFilter<ImageType, ImageType> ResampleType;
+  ResampleType::Pointer resampler = ResampleType::New();
+  resampler->SetInput(m_ExtractedCTImage);
+  resampler->SetInterpolator(interpolator);
+  resampler->SetTransform(transform);
+  resampler->SetUseReferenceImage(true);
+  resampler->SetReferenceImage(m_ExtractedXRayImage);
+  resampler->Update();
+
+  m_ExtractedXRayImage = resampler->GetOutput();
+  auto tovtk = itk::ImageToVTKImageFilter<ImageType>::New();
+  tovtk->SetInput(m_ExtractedXRayImage);
+  tovtk->Update();
+  qDebug() << "xray region registered";
+  auto imagedata = vtkSmartPointer<vtkImageData>::New();
+  imagedata->DeepCopy(tovtk->GetOutput());
+  double scalarRange[2];
+  imagedata->GetScalarRange(scalarRange);
+
+  m_xrayIn3D->GetMapper()->SetInputData(imagedata);
+  m_xrayIn3D->SetInputData(imagedata);
+  m_xrayIn3D->GetProperty()->SetColorLevel(
+      (scalarRange[1] - scalarRange[0]) / 2 + scalarRange[0]);
+  m_xrayIn3D->GetProperty()->SetColorWindow(scalarRange[1] - scalarRange[0]);
+  if (!m_Render3D->GetViewProps()->IsItemPresent(m_xrayIn3D))
+    m_Render3D->AddActor(m_xrayIn3D);
+  m_Render3D->GetRenderWindow()->Render();
+  qDebug() << "xray region registered";
 }
 
 void MainWindow::OnDICOMBrowser() { m_dicomBrowser->show(); }
@@ -2771,6 +2925,9 @@ void MainWindow::OnStartRegestration() {
     return;
   this->ExtractXRayRegion();
   this->ExtractCTRegion();
+
+  TryRegV4();
+  return;
   //  typedef itk::Image<double, 3> ImageType;
 
   //  typedef itk::Euler3DTransform<double> TransformType;
@@ -2851,13 +3008,13 @@ void MainWindow::OnStartRegestration() {
 
   // input fix image
   ImageType::PointType origion;
-  origion = m_ExtractedCTImage->GetOrigin();
+  origion = m_ExtractedXRayImage->GetOrigin();
 
   ImageType::PointType spacing;
-  spacing = m_ExtractedCTImage->GetSpacing();
+  spacing = m_ExtractedXRayImage->GetSpacing();
 
   ImageType::RegionType::SizeType largeSize;
-  largeSize = m_ExtractedCTImage->GetLargestPossibleRegion().GetSize();
+  largeSize = m_ExtractedXRayImage->GetLargestPossibleRegion().GetSize();
 
   typedef itk::RayCastInterpolateImageFunction<ImageType, double>
       InterpolatorType;
@@ -2866,11 +3023,13 @@ void MainWindow::OnStartRegestration() {
   typedef itk::MultiResolutionPyramidImageFilter<ImageType, ImageType>
       FixedImagePyramidType;
   registration->AddFixedImage(m_ExtractedXRayImage);
+  //  registration->AddFixedImageRegion(
+  //      m_ExtractedXRayImage->GetLargestPossibleRegion());
   InterpolatorType::Pointer interpolator = InterpolatorType::New();
   //  // FocalPointType focalPoint;
   focalPoint[0] = origion[0] + spacing[0] * largeSize[0] / 2.0;
   focalPoint[1] = origion[1] + spacing[1] * largeSize[1] / 2.0;
-  focalPoint[2] = origion[2] + 200;
+  focalPoint[2] = origion[2] + 1000;
   interpolator->SetFocalPoint(focalPoint);
   interpolator->SetTransform(transfom);
   interpolator->SetThreshold(0.0);
@@ -2881,8 +3040,7 @@ void MainWindow::OnStartRegestration() {
   registration->AddFixedImagePyramid(fixedPyramidFilter);
 
   // define metric
-  typedef itk::NormalizedGradientCorrelationMultiImageToImageMetric<ImageType,
-                                                                    ImageType>
+  typedef itk::GradientDifferenceMultiImageToImageMetric<ImageType, ImageType>
       MultiMetricType;
   MultiMetricType::Pointer multiMetric = MultiMetricType::New();
   registration->SetMultiMetric(multiMetric);
@@ -2900,7 +3058,7 @@ void MainWindow::OnStartRegestration() {
 
   optimizer->SetScales(scales);
   optimizer->SetMaximize(true);
-  optimizer->SetMaximumIteration(100);
+  optimizer->SetMaximumIteration(10);
   optimizer->SetMaximumLineIteration(10);
   optimizer->SetValueTolerance(1e-3);
   optimizer->SetUseUnitLengthGradient(true);
@@ -2910,7 +3068,7 @@ void MainWindow::OnStartRegestration() {
       -itk::NumericTraits<MultiMetricType::MeasureType>::infinity());
 
   optimizer->SetStepTolerance(0.08);
-  optimizer->SetStepLength(8.0);
+  optimizer->SetStepLength(8);
   registration->SetOptimizer(optimizer);
 
   // define schedules
@@ -2944,5 +3102,57 @@ void MainWindow::OnStartRegestration() {
   } catch (itk::ExceptionObject &e) {
     std::cout << e.GetDescription() << std::endl;
     return;
+  }
+  typedef itk::ResampleImageFilter<ImageType, ImageType> ResampleType;
+  ResampleType::Pointer resampler = ResampleType::New();
+  resampler->SetInput(m_ExtractedCTImage);
+  resampler->SetInterpolator(interpolator);
+  resampler->SetTransform(transfom);
+  resampler->SetUseReferenceImage(true);
+  resampler->SetReferenceImage(m_ExtractedXRayImage);
+  resampler->Update();
+
+  m_ExtractedXRayImage = resampler->GetOutput();
+  auto tovtk = itk::ImageToVTKImageFilter<ImageType>::New();
+  tovtk->SetInput(m_ExtractedXRayImage);
+  tovtk->Update();
+  qDebug() << "xray region registered";
+  auto imagedata = vtkSmartPointer<vtkImageData>::New();
+  imagedata->DeepCopy(tovtk->GetOutput());
+  double scalarRange[2];
+  imagedata->GetScalarRange(scalarRange);
+
+  m_xrayIn3D->GetMapper()->SetInputData(imagedata);
+  m_xrayIn3D->SetInputData(imagedata);
+  m_xrayIn3D->GetProperty()->SetColorLevel(
+      (scalarRange[1] - scalarRange[0]) / 2 + scalarRange[0]);
+  m_xrayIn3D->GetProperty()->SetColorWindow(scalarRange[1] - scalarRange[0]);
+  if (!m_Render3D->GetViewProps()->IsItemPresent(m_xrayIn3D))
+    m_Render3D->AddActor(m_xrayIn3D);
+  m_Render3D->GetRenderWindow()->Render();
+}
+
+void MainWindow::OnTest() {
+  ui->Widget2D->setFocus();
+  QPoint mouse = ui->Widget2D->mapFromGlobal(QCursor::pos());
+
+  int x = mouse.x();
+  int y = ui->Widget2D->height() - mouse.y();
+
+  qDebug() << "move:" << x << " " << y;
+  double worldpos[4];
+  vtkInteractorObserver::ComputeDisplayToWorld(m_Render2D, x, y, 0, worldpos);
+  m_lineWidget->SetOrigion(worldpos);
+}
+
+void MainWindow::OnTestButton() {
+  if (ui->testButton->isChecked()) {
+    m_vtkqtConnector->Connect(m_Interactor2D, vtkCommand::MouseMoveEvent, this,
+                              SLOT(OnTest()));
+  } else {
+    ui->FemoralCenterButton->setDisabled(false);
+    ui->AnkleCenterButton->setDisabled(false);
+    m_vtkqtConnector->Disconnect(m_Interactor2D, vtkCommand::MouseMoveEvent,
+                                 this, SLOT(OnTest()));
   }
 }

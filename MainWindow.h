@@ -1,9 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 #include "DICOMBrowser.h"
+#include "TYLineWidget.h"
 #include "stdafx.h"
 #include <QMainWindow>
-
 namespace Ui {
 class MainWindow;
 }
@@ -139,6 +139,8 @@ private:
   ImageType::Pointer m_ExtractedXRayImage;
   vtkSmartPointer<vtkSphereWidget> m_CTRemoveWidget;
 
+  TYLineWidget *m_lineWidget;
+
 protected:
   virtual void closeEvent(QCloseEvent *event);
   void SetUpSphereWidet();
@@ -165,6 +167,7 @@ protected:
   void ExtractXRayRegion();
   void ExtractCTRegion();
   void VisualizeSelectedCTRegion();
+  void TryRegV4();
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
@@ -219,6 +222,10 @@ protected slots:
   void OnRemoveCTNoiseButton();
   void OnRemoveCTNoiseSet();
   void OnStartRegestration();
+
+  // test
+  void OnTest();
+  void OnTestButton();
 };
 
 #endif // MAINWINDOW_H
