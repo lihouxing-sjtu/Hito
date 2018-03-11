@@ -43,7 +43,7 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkPolyDataMapper.h>
 #include <vtkPropAssembly.h>
 #include <vtkProperty.h>
-#include <vtkRenderWindow.h>,,,,,,
+#include <vtkRenderWindow.h>
 #include <vtkRenderWindowInteractor.h>
 #include <vtkRenderer.h>
 #include <vtkSTLReader.h>
@@ -52,12 +52,15 @@ VTK_MODULE_INIT(vtkRenderingOpenGL2)
 #include <vtkTextActor.h>
 #include <vtkTextActor3D.h>
 #include <vtkTextProperty.h>
+#include <vtkTextRepresentation.h>
+#include <vtkTextWidget.h>
 #include <vtkTransform.h>
 #include <vtkVectorText.h>
 #include <vtkVolume.h>
 #include <vtkVolumePicker.h>
 #include <vtkVolumeProperty.h>
 #include <vtkWorldPointPicker.h>
+
 // itk include
 #include "itkFRPROptimizer.h"
 #include "itkGradientDifferenceMultiImageToImageMetric.h"

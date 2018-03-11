@@ -6,6 +6,15 @@ TYLineWidget::TYLineWidget(QWidget *parent, vtkRenderer *render,
                            double *origion, double proportion, double length)
     : QWidget(parent), ui(new Ui::TYLineWidget) {
   ui->setupUi(this);
+  m_render = vtkSmartPointer<vtkRenderer>::New();
+  m_render = render;
+  m_interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
+  m_interactor = interactor;
+  double directionZ[3];
+  m_render->GetActiveCamera()->GetDirectionOfProjection(directionZ);
+  for (int i = 0; i < 3; i++) {
+    m_origionPoint[i] -= 2 * directionZ[i];
+  }
   m_proportion = proportion;
   m_length = length;
 
@@ -17,10 +26,6 @@ TYLineWidget::TYLineWidget(QWidget *parent, vtkRenderer *render,
   m_point1[0] -= m_proportion * m_length;
   m_point2[0] += m_proportion * m_length;
 
-  m_render = vtkSmartPointer<vtkRenderer>::New();
-  m_render = render;
-  m_interactor = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-  m_interactor = interactor;
   m_planeZ = vtkSmartPointer<vtkPlane>::New();
   m_planeZ->SetOrigin(m_origionPoint);
   m_planeZ->SetNormal(0, 0, 1);
@@ -32,6 +37,8 @@ TYLineWidget::TYLineWidget(QWidget *parent, vtkRenderer *render,
   m_lineActor->GetProperty()->SetOpacity(0.7);
   m_lineActor->GetProperty()->SetLineWidth(4);
   m_render->AddActor(m_lineActor);
+  isInteractive = true;
+  isDottedLine = false;
   this->InitializeSphereWidget();
 }
 TYLineWidget::~TYLineWidget() { delete ui; }
@@ -41,7 +48,64 @@ void TYLineWidget::SetDottedLine(bool flag) { isDottedLine = flag; }
 void TYLineWidget::SetOrigion(double *pt) {
   m_origionWidget->SetCenter(pt);
   // m_origionWidget->Off();
+  isInteractive = false;
   this->OnUpDateLine();
+}
+
+void TYLineWidget::GetPoints(vtkPoints *points) {
+  auto pts = vtkSmartPointer<vtkPoints>::New();
+
+  pts->Initialize();
+  pts->InsertNextPoint(m_point1);
+  pts->InsertNextPoint(m_origionPoint);
+  pts->InsertNextPoint(m_point2);
+  points->DeepCopy(pts);
+}
+
+void TYLineWidget::GetOrigion(double *pt) {
+  for (int i = 0; i < 3; i++) {
+    pt[i] = m_origionPoint[i];
+  }
+}
+
+void TYLineWidget::OrigionAddStep(double *step) {
+  double origionChanged[3];
+
+  for (int i = 0; i < 3; i++) {
+    origionChanged[i] = m_origionPoint[i];
+    origionChanged[i] += step[i];
+  }
+  isInteractive = false;
+  m_origionWidget->SetCenter(origionChanged);
+  this->OnUpDateLine();
+}
+
+void TYLineWidget::SetPoint1and2(double *p1, double *p2) {
+  isInteractive = false;
+  m_point1Widget->SetCenter(p1);
+  this->OnUpDateLine();
+  isInteractive = false;
+  m_point2Widget->SetCenter(p2);
+  this->OnUpDateLine();
+}
+
+void TYLineWidget::SetWidgetOff(bool isOff) {
+  if (isOff) {
+    m_point1Widget->Off();
+    m_point2Widget->Off();
+    m_origionWidget->Off();
+  } else {
+    m_point1Widget->On();
+    m_point2Widget->On();
+    m_origionWidget->On();
+  }
+}
+
+void TYLineWidget::SetColor(double *color) {
+  for (int i = 0; i < 3; i++)
+    m_color[i] = color[i];
+  m_lineActor->GetProperty()->SetColor(m_color);
+  m_render->GetRenderWindow()->Render();
 }
 
 void TYLineWidget::InitializeSphereWidget() {
@@ -87,7 +151,7 @@ void TYLineWidget::BuildLine(double *p1, double *p2, double segment,
   auto cells = vtkSmartPointer<vtkCellArray>::New();
   cells->Initialize();
   /// solid line
-  if (segment == 0) {
+  if (!segment) {
     points->InsertNextPoint(p1);
     points->InsertNextPoint(p2);
 
@@ -110,13 +174,14 @@ void TYLineWidget::BuildLine(double *p1, double *p2, double segment,
       for (int j = 0; j < 3; j++) {
         pt[j] = p1[j] + direction[j] * i * segment;
       }
-      pt[2] += 0.5;
       points->InsertNextPoint(pt);
     }
 
-    for (int i = 0; i < numOfPoints / 2; i++) {
+    for (int i = 0; i < numOfPoints; i = i + 2) {
       auto idlist = vtkSmartPointer<vtkIdList>::New();
       idlist->Initialize();
+      if (i + 2 >= numOfPoints)
+        continue;
       idlist->InsertNextId(i);
       idlist->InsertNextId(i + 1);
       cells->InsertNextCell(idlist);
@@ -172,12 +237,16 @@ void TYLineWidget::OnUpDateLine() {
   }
 
   auto polydata = vtkSmartPointer<vtkPolyData>::New();
-  this->BuildLine(m_point1, m_point2, isDottedLine, polydata);
+  this->BuildLine(m_point1, m_point2, isDottedLine * 20, polydata);
 
   auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mapper->SetInputData(polydata);
 
   m_lineActor->SetMapper(mapper);
   m_render->GetRenderWindow()->Render();
-  emit lineChanged();
+  if (isInteractive)
+    emit lineChanged();
+  else {
+    isInteractive = true;
+  }
 }

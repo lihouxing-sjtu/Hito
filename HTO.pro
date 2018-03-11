@@ -38,7 +38,8 @@ SOURCES += \
     itkPatchedRayCastInterpolateImageFunction.txx \
     itkPatternIntensityImageToImageMetric.txx \
     itkPatternIntensityMultiImageToImageMetric.txx \
-    TYLineWidget.cpp
+    TYLineWidget.cpp \
+    TYCircleWidget.cpp
 
 HEADERS += \
         MainWindow.h \
@@ -57,12 +58,14 @@ HEADERS += \
     itkPatchedRayCastInterpolateImageFunction.h \
     itkPatternIntensityImageToImageMetric.h \
     itkPatternIntensityMultiImageToImageMetric.h \
-    TYLineWidget.h
+    TYLineWidget.h \
+    TYCircleWidget.h
 
 FORMS += \
         MainWindow.ui \
     DICOMBrowser.ui \
-    TYLineWidget.ui
+    TYLineWidget.ui \
+    TYCircleWidget.ui
 
 RESOURCES += \
     resource.qrc

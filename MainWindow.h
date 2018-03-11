@@ -1,6 +1,7 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 #include "DICOMBrowser.h"
+#include "TYCircleWidget.h"
 #include "TYLineWidget.h"
 #include "stdafx.h"
 #include <QMainWindow>
@@ -139,7 +140,20 @@ private:
   ImageType::Pointer m_ExtractedXRayImage;
   vtkSmartPointer<vtkSphereWidget> m_CTRemoveWidget;
 
-  TYLineWidget *m_lineWidget;
+  // for planning
+  TYCircleWidget *m_femurWidget;
+  TYLineWidget *m_kneeUpWidget;
+  TYLineWidget *m_kneeDownWidget;
+  TYLineWidget *m_ankleWidget;
+
+  TYLineWidget *m_femur2kneeupLine;
+  TYLineWidget *m_kneedown2ankleLine;
+  TYLineWidget *m_femur2ankleLine;
+
+  TYLineWidget *m_femurKneeDownLine;
+
+  // text widget
+  vtkSmartPointer<vtkFollower> m_TextActorFemurKneeDown;
 
 protected:
   virtual void closeEvent(QCloseEvent *event);
@@ -168,6 +182,9 @@ protected:
   void ExtractCTRegion();
   void VisualizeSelectedCTRegion();
   void TryRegV4();
+  void InitializePlanningWidget();
+  double CalculateAngle(double *p1, double *p2, double *pp1, double *pp2,
+                        double *position);
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
@@ -226,6 +243,11 @@ protected slots:
   // test
   void OnTest();
   void OnTestButton();
+
+  void OnChangeFemurWidget();
+  void OnChangeKneeUpWidget();
+  void OnChangeKneeDownWidget();
+  void OnChangeAnkleWidget();
 };
 
 #endif // MAINWINDOW_H

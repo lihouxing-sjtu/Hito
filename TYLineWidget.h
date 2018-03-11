@@ -21,6 +21,12 @@ public:
 
   void SetDottedLine(bool flag);
   void SetOrigion(double *pt);
+  void GetPoints(vtkPoints *points);
+  void GetOrigion(double *pt);
+  void OrigionAddStep(double *step);
+  void SetPoint1and2(double *p1, double *p2);
+  void SetWidgetOff(bool isOff);
+  void SetColor(double *color);
 
 private:
   Ui::TYLineWidget *ui;
@@ -41,6 +47,8 @@ private:
   double m_length;
   vtkSmartPointer<vtkActor> m_lineActor;
   bool isDottedLine;
+  bool isInteractive;
+  double m_color[3];
 
 protected:
   void InitializeSphereWidget();
