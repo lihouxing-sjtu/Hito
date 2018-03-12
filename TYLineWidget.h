@@ -27,6 +27,8 @@ public:
   void SetPoint1and2(double *p1, double *p2);
   void SetWidgetOff(bool isOff);
   void SetColor(double *color);
+  void GetPoint1(double *pt);
+  void GetPoint2(double *pt);
 
 private:
   Ui::TYLineWidget *ui;

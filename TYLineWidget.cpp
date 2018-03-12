@@ -24,7 +24,7 @@ TYLineWidget::TYLineWidget(QWidget *parent, vtkRenderer *render,
     m_point2[i] = m_origionPoint[i];
   }
   m_point1[0] -= m_proportion * m_length;
-  m_point2[0] += m_proportion * m_length;
+  m_point2[0] += (1 - m_proportion) * m_length;
 
   m_planeZ = vtkSmartPointer<vtkPlane>::New();
   m_planeZ->SetOrigin(m_origionPoint);
@@ -106,6 +106,16 @@ void TYLineWidget::SetColor(double *color) {
     m_color[i] = color[i];
   m_lineActor->GetProperty()->SetColor(m_color);
   m_render->GetRenderWindow()->Render();
+}
+
+void TYLineWidget::GetPoint1(double *pt) {
+  for (int i = 0; i < 3; i++)
+    pt[i] = m_point1[i];
+}
+
+void TYLineWidget::GetPoint2(double *pt) {
+  for (int i = 0; i < 3; i++)
+    pt[i] = m_point2[i];
 }
 
 void TYLineWidget::InitializeSphereWidget() {

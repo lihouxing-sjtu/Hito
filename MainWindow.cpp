@@ -1557,37 +1557,90 @@ void MainWindow::InitializePlanningWidget() {
   m_femurKneeDownLine->SetPoint1and2(kneeDownReferencePoint, origion);
 
   // angle 1
-  double textActorFemurKneeDownPosition[3];
-  double angleBetweenKneeDown2Femur =
-      CalculateAngle(kneeDownReferencePoint, origion, kneeDown, origion,
-                     textActorFemurKneeDownPosition);
-  auto vectorTextFemurKneeDow = vtkSmartPointer<vtkVectorText>::New();
-  vectorTextFemurKneeDow->SetText(
-      QString::number(angleBetweenKneeDown2Femur, 'g', 3)
-          .toStdString()
-          .c_str());
-  vectorTextFemurKneeDow->Update();
-  auto mapperFemurKneeDow = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapperFemurKneeDow->SetInputData(vectorTextFemurKneeDow->GetOutput());
   m_TextActorFemurKneeDown = vtkSmartPointer<vtkFollower>::New();
   m_TextActorFemurKneeDown->SetCamera(m_Render2D->GetActiveCamera());
-  m_TextActorFemurKneeDown->SetMapper(mapperFemurKneeDow);
   m_TextActorFemurKneeDown->SetScale(30);
-  m_TextActorFemurKneeDown->SetPosition(textActorFemurKneeDownPosition);
+  m_TextActorFemurKneeDown->GetProperty()->SetColor(1, 1, 0);
   m_Render2D->AddActor(m_TextActorFemurKneeDown);
+  m_GuideActorFemurKneeDown = vtkSmartPointer<vtkActor>::New();
+  m_GuideActorFemurKneeDown->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_GuideActorFemurKneeDown);
 
+  this->UpDateVectorActor(m_TextActorFemurKneeDown, m_GuideActorFemurKneeDown,
+                          kneeDownReferencePoint, origion, kneeDown, origion);
   // angle2
+  m_TextActorFemurKneeUp = vtkSmartPointer<vtkFollower>::New();
+  m_TextActorFemurKneeUp->SetCamera(m_Render2D->GetActiveCamera());
+  m_TextActorFemurKneeUp->SetScale(30);
+  m_TextActorFemurKneeUp->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_TextActorFemurKneeUp);
+  double kneeUpPoint1[3];
+  m_kneeUpWidget->GetPoint1(kneeUpPoint1);
+
+  m_GuideActorFemurKneeUp = vtkSmartPointer<vtkActor>::New();
+  m_GuideActorFemurKneeUp->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_GuideActorFemurKneeUp);
+
+  this->UpDateVectorActor(m_TextActorFemurKneeUp, m_GuideActorFemurKneeUp,
+                          kneeUpPoint1, kneeUp, origion, kneeUp);
 
   // angle 3
+  m_TextActorAnkleKneeDown = vtkSmartPointer<vtkFollower>::New();
+  m_TextActorAnkleKneeDown->SetCamera(m_Render2D->GetActiveCamera());
+  m_TextActorAnkleKneeDown->SetScale(30);
+  m_TextActorAnkleKneeDown->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_TextActorAnkleKneeDown);
 
+  m_GuideActorAnkleKneeDown = vtkSmartPointer<vtkActor>::New();
+  m_GuideActorAnkleKneeDown->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_GuideActorAnkleKneeDown);
+
+  double kneeDownPoint2[3];
+  m_kneeDownWidget->GetPoint2(kneeDownPoint2);
+  this->UpDateVectorActor(m_TextActorAnkleKneeDown, m_GuideActorAnkleKneeDown,
+                          kneeDownPoint2, kneeDown, ankle, kneeDown);
   // angle 4
+  m_TextActorAnkleAnkle = vtkSmartPointer<vtkFollower>::New();
+  m_TextActorAnkleAnkle->SetCamera(m_Render2D->GetActiveCamera());
+  m_TextActorAnkleAnkle->SetScale(30);
+  m_TextActorAnkleAnkle->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_TextActorAnkleAnkle);
+  m_GuideActorAnkleAnkle = vtkSmartPointer<vtkActor>::New();
+  m_GuideActorAnkleAnkle->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_GuideActorAnkleAnkle);
+
+  double anklePoint1[3];
+  m_ankleWidget->GetPoint1(anklePoint1);
+  this->UpDateVectorActor(m_TextActorAnkleAnkle, m_GuideActorAnkleAnkle,
+                          anklePoint1, ankle, kneeDown, ankle);
+
+  // angle 5
+  m_TextActorKneeUpDown = vtkSmartPointer<vtkFollower>::New();
+  m_TextActorKneeUpDown->SetCamera(m_Render2D->GetActiveCamera());
+  m_TextActorKneeUpDown->SetScale(30);
+  m_TextActorKneeUpDown->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_TextActorKneeUpDown);
+
+  m_GuideActorKneeUpDown = vtkSmartPointer<vtkActor>::New();
+  m_GuideActorKneeUpDown->GetProperty()->SetColor(1, 1, 0);
+  m_Render2D->AddActor(m_GuideActorKneeUpDown);
+
+  this->UpDateVectorActor(m_TextActorKneeUpDown, m_GuideActorKneeUpDown,
+                          kneeUpPoint1, kneeUp, kneeDownp1, kneeDown);
+
+  // fujisawa line
+  double colorRed[3] = {1, 0, 0};
+  m_fujisawaLine =
+      new TYLineWidget(0, m_Render2D, m_Interactor2D, kneeUp, 0.375);
+  m_fujisawaLine->SetColor(colorRed);
 }
 
 double MainWindow::CalculateAngle(double *p1, double *p2, double *pp1,
-                                  double *pp2, double *position) {
+                                  double *pp2, double *position,
+                                  vtkPolyData *guideData) {
   double length1 = sqrt(vtkMath::Distance2BetweenPoints(p1, p2));
   double length2 = sqrt(vtkMath::Distance2BetweenPoints(pp1, pp2));
-  double halfLength = length1 > length2 ? length2 / 2 : length1 / 2;
+  double Length = length1 > length2 ? length2 : length1;
   double direction[3];
   double p12[3], pp12[3];
   for (int i = 0; i < 3; i++) {
@@ -1598,11 +1651,73 @@ double MainWindow::CalculateAngle(double *p1, double *p2, double *pp1,
   vtkMath::Normalize(p12);
   vtkMath::Normalize(pp12);
   vtkMath::Normalize(direction);
+  double cameraDirection[3];
+  m_Render2D->GetActiveCamera()->GetDirectionOfProjection(cameraDirection);
+
+  auto points = vtkSmartPointer<vtkPoints>::New();
+  points->Initialize();
+  double guidePoints[4][3];
   for (int i = 0; i < 3; i++) {
-    position[i] = direction[i] * halfLength + p1[i];
+    guidePoints[0][i] = p2[i] + length1 / 4.0 * p12[i];
+    guidePoints[2][i] = pp2[i] + length2 / 4.0 * pp12[i];
   }
+  double guideDirection1[3], guideDirection2[3];
+  for (int i = 0; i < 3; i++) {
+    position[i] = direction[i] * Length + p1[i] - cameraDirection[i] * 2;
+    guideDirection1[i] = position[i] - guidePoints[0][i];
+    guideDirection2[i] = position[i] - guidePoints[2][i];
+  }
+  vtkMath::Normalize(guideDirection1);
+  vtkMath::Normalize(guideDirection2);
+  for (int i = 0; i < 3; i++) {
+    guidePoints[1][i] = position[i] - 60 * guideDirection1[i];
+    guidePoints[3][i] = position[i] - guideDirection2[i] * 60;
+  }
+
+  for (int i = 0; i < 4; i++) {
+    points->InsertNextPoint(guidePoints[i]);
+  }
+  auto cells = vtkSmartPointer<vtkCellArray>::New();
+  cells->Initialize();
+  auto id1 = vtkSmartPointer<vtkIdList>::New();
+  id1->Initialize();
+  id1->InsertNextId(0);
+  id1->InsertNextId(1);
+  cells->InsertNextCell(id1);
+
+  auto id2 = vtkSmartPointer<vtkIdList>::New();
+  id2->Initialize();
+  id2->InsertNextId(2);
+  id2->InsertNextId(3);
+  cells->InsertNextCell(id2);
+  auto pd = vtkSmartPointer<vtkPolyData>::New();
+  pd->SetPoints(points);
+  pd->SetLines(cells);
+  guideData->DeepCopy(pd);
   double angle = vtkMath::AngleBetweenVectors(p12, pp12);
   return vtkMath::DegreesFromRadians(angle);
+}
+
+void MainWindow::UpDateVectorActor(vtkFollower *actor, vtkActor *guideActor,
+                                   double p1[], double p2[], double pp1[],
+                                   double pp2[]) {
+  double textActorPosition[3];
+  auto guideData = vtkSmartPointer<vtkPolyData>::New();
+
+  double angle = CalculateAngle(p1, p2, pp1, pp2, textActorPosition, guideData);
+  auto vectorText = vtkSmartPointer<vtkVectorText>::New();
+  vectorText->SetText(QString::number(angle, 'g', 4).toStdString().c_str());
+  vectorText->Update();
+
+  auto guideMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  guideMapper->SetInputData(guideData);
+  guideActor->SetMapper(guideMapper);
+
+  auto mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInputData(vectorText->GetOutput());
+
+  actor->SetMapper(mapper);
+  actor->SetPosition(textActorPosition);
 }
 
 void MainWindow::OnDICOMBrowser() { m_dicomBrowser->show(); }
@@ -3288,21 +3403,33 @@ void MainWindow::OnTest() {
   m_femurKneeDownLine->SetPoint1and2(kneeDownReferencePoint, femurCenter);
 
   // angle 1
-  double textActorFemurKneeDownPosition[3];
-  double angleBetweenKneeDown2Femur =
-      CalculateAngle(kneeDownReferencePoint, femurCenter, kneeDownCenter,
-                     femurCenter, textActorFemurKneeDownPosition);
-  auto vectorTextFemurKneeDow = vtkSmartPointer<vtkVectorText>::New();
-  vectorTextFemurKneeDow->SetText(
-      QString::number(angleBetweenKneeDown2Femur, 'g', 3)
-          .toStdString()
-          .c_str());
-  vectorTextFemurKneeDow->Update();
-  auto mapperFemurKneeDow = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapperFemurKneeDow->SetInputData(vectorTextFemurKneeDow->GetOutput());
+  this->UpDateVectorActor(m_TextActorFemurKneeDown, m_GuideActorFemurKneeDown,
+                          kneeDownReferencePoint, femurCenter, kneeDownCenter,
+                          femurCenter);
+  // angle 2
+  double kneeUpPoint1[3];
+  m_kneeUpWidget->GetPoint1(kneeUpPoint1);
+  this->UpDateVectorActor(m_TextActorFemurKneeUp, m_GuideActorFemurKneeUp,
+                          kneeUpPoint1, kneeUpCenter, femurCenter,
+                          kneeUpCenter);
+  // angle 3
+  double kneeDownPoint2[3];
+  m_kneeDownWidget->GetPoint2(kneeDownPoint2);
+  this->UpDateVectorActor(m_TextActorAnkleKneeDown, m_GuideActorAnkleKneeDown,
+                          kneeDownPoint2, kneeDownCenter, ankleCenter,
+                          kneeDownCenter);
+  // angle 4
+  double anklePoint1[3];
+  m_ankleWidget->GetPoint1(anklePoint1);
+  this->UpDateVectorActor(m_TextActorAnkleAnkle, m_GuideActorAnkleAnkle,
+                          anklePoint1, ankleCenter, kneeDownCenter,
+                          ankleCenter);
+  // angle 5
+  this->UpDateVectorActor(m_TextActorKneeUpDown, m_GuideActorKneeUpDown,
+                          kneeUpPoint1, kneeUpCenter, kneeDownp1,
+                          kneeDownCenter);
 
-  m_TextActorFemurKneeDown->SetMapper(mapperFemurKneeDow);
-  m_TextActorFemurKneeDown->SetPosition(textActorFemurKneeDownPosition);
+  m_fujisawaLine->SetOrigion(kneeDownCenter);
 }
 
 void MainWindow::OnTestButton() {
@@ -3342,21 +3469,15 @@ void MainWindow::OnChangeFemurWidget() {
   m_kneeDownWidget->GetOrigion(kneeDownCenter);
 
   // angle 1
-  double textActorFemurKneeDownPosition[3];
-  double angleBetweenKneeDown2Femur =
-      CalculateAngle(kneeDownReferencePoint, femurCenter, kneeDownCenter,
-                     femurCenter, textActorFemurKneeDownPosition);
-  auto vectorTextFemurKneeDow = vtkSmartPointer<vtkVectorText>::New();
-  vectorTextFemurKneeDow->SetText(
-      QString::number(angleBetweenKneeDown2Femur, 'g', 3)
-          .toStdString()
-          .c_str());
-  vectorTextFemurKneeDow->Update();
-  auto mapperFemurKneeDow = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapperFemurKneeDow->SetInputData(vectorTextFemurKneeDow->GetOutput());
-
-  m_TextActorFemurKneeDown->SetMapper(mapperFemurKneeDow);
-  m_TextActorFemurKneeDown->SetPosition(textActorFemurKneeDownPosition);
+  this->UpDateVectorActor(m_TextActorFemurKneeDown, m_GuideActorFemurKneeDown,
+                          kneeDownReferencePoint, femurCenter, kneeDownCenter,
+                          femurCenter);
+  // angle 2
+  double kneeUpPoint1[3];
+  m_kneeUpWidget->GetPoint1(kneeUpPoint1);
+  this->UpDateVectorActor(m_TextActorFemurKneeUp, m_GuideActorFemurKneeUp,
+                          kneeUpPoint1, kneeUpCenter, femurCenter,
+                          kneeUpCenter);
 }
 
 void MainWindow::OnChangeKneeUpWidget() {
@@ -3365,6 +3486,22 @@ void MainWindow::OnChangeKneeUpWidget() {
   m_kneeUpWidget->GetOrigion(kneeUpCenter);
 
   m_femur2kneeupLine->SetPoint1and2(femurCenter, kneeUpCenter);
+
+  // angle 2
+  double kneeUpPoint1[3];
+  m_kneeUpWidget->GetPoint1(kneeUpPoint1);
+  this->UpDateVectorActor(m_TextActorFemurKneeUp, m_GuideActorFemurKneeUp,
+                          kneeUpPoint1, kneeUpCenter, femurCenter,
+                          kneeUpCenter);
+  // angle 5
+  double kneeDownPoint1[3];
+  m_kneeDownWidget->GetPoint1(kneeDownPoint1);
+  double kneeDownCenter[3];
+  m_kneeDownWidget->GetOrigion(kneeDownCenter);
+  this->UpDateVectorActor(m_TextActorKneeUpDown, m_GuideActorKneeUpDown,
+                          kneeUpPoint1, kneeUpCenter, kneeDownPoint1,
+                          kneeDownCenter);
+  ;
 }
 
 void MainWindow::OnChangeKneeDownWidget() {
@@ -3392,21 +3529,29 @@ void MainWindow::OnChangeKneeDownWidget() {
   m_femurKneeDownLine->SetPoint1and2(kneeDownReferencePoint, femurCenter);
 
   // angle 1
-  double textActorFemurKneeDownPosition[3];
-  double angleBetweenKneeDown2Femur =
-      CalculateAngle(kneeDownReferencePoint, femurCenter, kneeDownCenter,
-                     femurCenter, textActorFemurKneeDownPosition);
-  auto vectorTextFemurKneeDow = vtkSmartPointer<vtkVectorText>::New();
-  vectorTextFemurKneeDow->SetText(
-      QString::number(angleBetweenKneeDown2Femur, 'g', 3)
-          .toStdString()
-          .c_str());
-  vectorTextFemurKneeDow->Update();
-  auto mapperFemurKneeDow = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapperFemurKneeDow->SetInputData(vectorTextFemurKneeDow->GetOutput());
-
-  m_TextActorFemurKneeDown->SetMapper(mapperFemurKneeDow);
-  m_TextActorFemurKneeDown->SetPosition(textActorFemurKneeDownPosition);
+  this->UpDateVectorActor(m_TextActorFemurKneeDown, m_GuideActorFemurKneeDown,
+                          kneeDownReferencePoint, femurCenter, kneeDownCenter,
+                          femurCenter);
+  // angle 3
+  double kneeDownPoint2[3];
+  m_kneeDownWidget->GetPoint2(kneeDownPoint2);
+  this->UpDateVectorActor(m_TextActorAnkleKneeDown, m_GuideActorAnkleKneeDown,
+                          kneeDownPoint2, kneeDownCenter, ankleCenter,
+                          kneeDownCenter);
+  // angle 4
+  double anklePoint1[3];
+  m_ankleWidget->GetPoint1(anklePoint1);
+  this->UpDateVectorActor(m_TextActorAnkleAnkle, m_GuideActorAnkleAnkle,
+                          anklePoint1, ankleCenter, kneeDownCenter,
+                          ankleCenter);
+  // angle 5
+  double kneeUpPoint1[3];
+  m_kneeUpWidget->GetPoint1(kneeUpPoint1);
+  double kneeUpCenter[3];
+  m_kneeUpWidget->GetOrigion(kneeUpCenter);
+  this->UpDateVectorActor(m_TextActorKneeUpDown, m_GuideActorKneeUpDown,
+                          kneeUpPoint1, kneeUpCenter, kneeDownp1,
+                          kneeDownCenter);
 }
 
 void MainWindow::OnChangeAnkleWidget() {
@@ -3417,4 +3562,17 @@ void MainWindow::OnChangeAnkleWidget() {
 
   m_kneedown2ankleLine->SetPoint1and2(kneeDownCenter, ankleCenter);
   m_femur2ankleLine->SetPoint1and2(femurCenter, ankleCenter);
+
+  // angle 3
+  double kneeDownPoint2[3];
+  m_kneeDownWidget->GetPoint2(kneeDownPoint2);
+  this->UpDateVectorActor(m_TextActorAnkleKneeDown, m_GuideActorAnkleKneeDown,
+                          kneeDownPoint2, kneeDownCenter, ankleCenter,
+                          kneeDownCenter);
+  // angle 4
+  double anklePoint1[3];
+  m_ankleWidget->GetPoint1(anklePoint1);
+  this->UpDateVectorActor(m_TextActorAnkleAnkle, m_GuideActorAnkleAnkle,
+                          anklePoint1, ankleCenter, kneeDownCenter,
+                          ankleCenter);
 }

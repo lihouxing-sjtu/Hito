@@ -154,6 +154,19 @@ private:
 
   // text widget
   vtkSmartPointer<vtkFollower> m_TextActorFemurKneeDown;
+  vtkSmartPointer<vtkFollower> m_TextActorFemurKneeUp;
+  vtkSmartPointer<vtkFollower> m_TextActorAnkleKneeDown;
+  vtkSmartPointer<vtkFollower> m_TextActorAnkleAnkle;
+  vtkSmartPointer<vtkFollower> m_TextActorKneeUpDown;
+
+  vtkSmartPointer<vtkActor> m_GuideActorFemurKneeDown;
+  vtkSmartPointer<vtkActor> m_GuideActorFemurKneeUp;
+  vtkSmartPointer<vtkActor> m_GuideActorAnkleKneeDown;
+  vtkSmartPointer<vtkActor> m_GuideActorAnkleAnkle;
+  vtkSmartPointer<vtkActor> m_GuideActorKneeUpDown;
+
+  // hto 2d planning
+  TYLineWidget *m_fujisawaLine;
 
 protected:
   virtual void closeEvent(QCloseEvent *event);
@@ -184,7 +197,10 @@ protected:
   void TryRegV4();
   void InitializePlanningWidget();
   double CalculateAngle(double *p1, double *p2, double *pp1, double *pp2,
-                        double *position);
+                        double *position, vtkPolyData *guideData);
+
+  void UpDateVectorActor(vtkFollower *actor, vtkActor *guideActor, double p1[],
+                         double p2[], double pp1[], double pp2[]);
 protected slots:
   void OnDICOMBrowser();
   void OnImportVolume(int index);
